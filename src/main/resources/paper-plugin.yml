@@ -1,6 +1,6 @@
-name: PaperWinterTemplate
+name: RevengeEssentials
 version: ${version}
-main: me.mapacheee.template.TemplatePlugin
+main: me.mapacheee.revengeessentials.RevengeEssentialsPlugin
 api-version: '1.21'
-description: A template plugin using the Winter Framework
+description: RevengeEssentials plugin
 author: Mapacheee

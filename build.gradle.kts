@@ -10,7 +10,7 @@ java {
     }
 }
 
-group = "me.mapacheee.template"
+group = "me.mapacheee.revenge"
 version = "1.0.0-SNAPSHOT"
 
 repositories {
@@ -38,6 +38,6 @@ tasks {
         }
     }
     shadowJar {
-        archiveFileName.set("PaperWinterTemplate-${project.version}.jar")
+        archiveFileName.set("RevengeEssentials-${project.version}.jar")
     }
 }
