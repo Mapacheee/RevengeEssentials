@@ -14,10 +14,12 @@ group = "me.mapacheee.revenge"
 version = "1.0.0-SNAPSHOT"
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("https://jitpack.io")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
 }
 
 dependencies {
@@ -29,6 +31,8 @@ dependencies {
     annotationProcessor("com.thewinterframework:command:1.0.1")
 
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly("me.mapacheee.revenge:RevengeCore:1.0.0-SNAPSHOT")
 }
 
 tasks {

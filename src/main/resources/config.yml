@@ -1,1 +1,6 @@
-feature-enabled: true
+default-max-homes: 3
+force-spawn-on-join: false
+tpa-timeout-seconds: 30
+tpa-cooldown-seconds: 10
+default-walk-speed: 1
+default-fly-speed: 1
