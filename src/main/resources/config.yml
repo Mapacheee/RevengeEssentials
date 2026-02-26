@@ -8,3 +8,4 @@ rtp-target-server: "survival-overworld"
 rtp-target-world: "world"
 rtp-radius: 100
 rtp-cooldown-seconds: 60
+auto-save-interval-minutes: 20

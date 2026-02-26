@@ -15,4 +15,5 @@ public record Config(
         String rtpTargetServer,
         String rtpTargetWorld,
         int rtpRadius,
-        int rtpCooldownSeconds) {}
+        int rtpCooldownSeconds,
+        int autoSaveIntervalMinutes) {}

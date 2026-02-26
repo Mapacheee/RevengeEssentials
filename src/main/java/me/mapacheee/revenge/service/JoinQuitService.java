@@ -145,4 +145,18 @@ public class JoinQuitService {
             logoutLocationRepository.save(logoutLoc);
         }
     }
+
+    public void saveLogoutLocation(Player player) {
+        String uuidStr = player.getUniqueId().toString();
+        Location loc = player.getLocation();
+        String currentServer = RevengeCoreAPI.get().getServerName();
+        
+        Bukkit.getAsyncScheduler().runNow(plugin, t -> {
+            logoutLocationRepository.delete(Filters.eq("uuid", uuidStr));
+            LogoutLocation logoutLoc = new LogoutLocation(
+                    uuidStr, currentServer, loc.getWorld().getName(),
+                    loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+            logoutLocationRepository.save(logoutLoc);
+        });
+    }
 }
