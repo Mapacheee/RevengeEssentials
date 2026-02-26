@@ -55,6 +55,7 @@ public class HomeService {
             Location loc = player.getLocation();
             HomeData home = new HomeData(
                     player.getUniqueId().toString(), name.toLowerCase(), getServerName(),
+                    RevengeCoreAPI.get().getServerDisplayName(), false,
                     loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
             homeRepository.save(home);
             return true;
@@ -73,27 +74,37 @@ public class HomeService {
                     Filters.eq("uuid", uuid),
                     Filters.eq("name", name.toLowerCase())));
 
-            if (home != null && home.getServer().equals("revenge_essentials")) {
-                home.setServer(getServerName());
-                homeRepository.save(home);
-            }
             return home;
         });
+    }
+
+    public CompletableFuture<Void> setDefaultHome(String uuid, String name) {
+        return getHomes(uuid).thenAccept(homes -> {
+            for (HomeData home : homes) {
+                homeRepository.delete(Filters.and(
+                        Filters.eq("uuid", uuid),
+                        Filters.eq("name", home.getName().toLowerCase())));
+
+                if (home.getName().equalsIgnoreCase(name)) {
+                    home.setDefaultHome(true);
+                } else {
+                    home.setDefaultHome(false);
+                }
+
+                home.id(null);
+                homeRepository.save(home);
+            }
+        });
+    }
+
+    public CompletableFuture<HomeData> getDefaultHome(String uuid) {
+        return getHomes(uuid)
+                .thenApply(homes -> homes.stream().filter(HomeData::isDefaultHome).findFirst().orElse(null));
     }
 
     public CompletableFuture<Collection<HomeData>> getHomes(String uuid) {
         return CompletableFuture.supplyAsync(() -> {
             Collection<HomeData> homes = homeRepository.find(Filters.eq("uuid", uuid));
-            boolean migratedAny = false;
-
-            for (HomeData home : homes) {
-                if (home.getServer().equals("revenge_essentials")) {
-                    home.setServer(getServerName());
-                    homeRepository.save(home);
-                    migratedAny = true;
-                }
-            }
-
             return homes;
         });
     }
@@ -115,7 +126,7 @@ public class HomeService {
         } else {
             player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
             crossServerService.teleportCrossServer(player, home.getServer(), home.getWorld(), home.getX(), home.getY(),
-                    home.getZ(), home.getYaw(), home.getPitch());
+                    home.getZ(), home.getYaw(), home.getPitch(), false);
         }
     }
 

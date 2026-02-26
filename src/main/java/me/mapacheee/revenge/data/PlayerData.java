@@ -13,6 +13,9 @@ public class PlayerData implements Identifiable<ObjectId> {
     private int xp;
     private String lastLocation;
     private String inventory;
+    private Boolean queuedGodmode;
+    private String queuedGamemode;
+    private Boolean queuedHeal;
 
     public PlayerData() {
     }
@@ -73,5 +76,29 @@ public class PlayerData implements Identifiable<ObjectId> {
 
     public void setInventory(String inventory) {
         this.inventory = inventory;
+    }
+
+    public Boolean getQueuedGodmode() {
+        return queuedGodmode;
+    }
+
+    public void setQueuedGodmode(Boolean queuedGodmode) {
+        this.queuedGodmode = queuedGodmode;
+    }
+
+    public String getQueuedGamemode() {
+        return queuedGamemode;
+    }
+
+    public void setQueuedGamemode(String queuedGamemode) {
+        this.queuedGamemode = queuedGamemode;
+    }
+
+    public Boolean getQueuedHeal() {
+        return queuedHeal;
+    }
+
+    public void setQueuedHeal(Boolean queuedHeal) {
+        this.queuedHeal = queuedHeal;
     }
 }

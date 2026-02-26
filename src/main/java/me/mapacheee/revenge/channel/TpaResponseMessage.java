@@ -8,6 +8,7 @@ public class TpaResponseMessage extends ValkeyMessage {
     public String targetUuid;
     public String targetName;
     public boolean accepted;
+    public boolean tpaHere;
     public String targetServer;
     public String targetWorld;
     public double x;
@@ -17,13 +18,14 @@ public class TpaResponseMessage extends ValkeyMessage {
     public float pitch;
 
     public TpaResponseMessage(String serverId, String senderUuid, String targetUuid, String targetName,
-            boolean accepted,
+            boolean accepted, boolean tpaHere,
             String targetServer, String targetWorld, double x, double y, double z, float yaw, float pitch) {
         super("essentials_tpa_response", serverId);
         this.senderUuid = senderUuid;
         this.targetUuid = targetUuid;
         this.targetName = targetName;
         this.accepted = accepted;
+        this.tpaHere = tpaHere;
         this.targetServer = targetServer;
         this.targetWorld = targetWorld;
         this.x = x;
@@ -40,6 +42,7 @@ public class TpaResponseMessage extends ValkeyMessage {
         json.addProperty("targetUuid", targetUuid);
         json.addProperty("targetName", targetName);
         json.addProperty("accepted", accepted);
+        json.addProperty("tpaHere", tpaHere);
         json.addProperty("targetServer", targetServer);
         json.addProperty("targetWorld", targetWorld);
         json.addProperty("x", x);

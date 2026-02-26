@@ -14,7 +14,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.plugin.Plugin;
 
 @ListenerComponent
 public class PlayerSyncListener implements Listener {
@@ -23,16 +22,14 @@ public class PlayerSyncListener implements Listener {
     private final SpawnService spawnService;
     private final BackService backService;
     private final CrossServerService crossServerService;
-    private final Plugin plugin;
 
     @Inject
     public PlayerSyncListener(InventorySyncService inventorySyncService, SpawnService spawnService,
-            BackService backService, CrossServerService crossServerService, Plugin plugin) {
+            BackService backService, CrossServerService crossServerService) {
         this.inventorySyncService = inventorySyncService;
         this.spawnService = spawnService;
         this.backService = backService;
         this.crossServerService = crossServerService;
-        this.plugin = plugin;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

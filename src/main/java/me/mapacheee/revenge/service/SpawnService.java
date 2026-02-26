@@ -46,10 +46,7 @@ public class SpawnService {
     void loadSpawn() {
         Bukkit.getAsyncScheduler().runDelayed(plugin, task -> {
             cachedSpawn = spawnRepository.findOne(Filters.exists("server"));
-            if (cachedSpawn != null && cachedSpawn.getServer().equals("revenge_essentials")) {
-                cachedSpawn.setServer(getServerName());
-                spawnRepository.save(cachedSpawn);
-            }
+
         }, 2, TimeUnit.SECONDS);
     }
 
@@ -69,10 +66,6 @@ public class SpawnService {
 
         if (cachedSpawn == null) {
             cachedSpawn = spawnRepository.findOne(Filters.exists("server"));
-            if (cachedSpawn != null && cachedSpawn.getServer().equals("revenge_essentials")) {
-                cachedSpawn.setServer(getServerName());
-                spawnRepository.save(cachedSpawn);
-            }
         }
 
         if (cachedSpawn == null) {
@@ -95,7 +88,7 @@ public class SpawnService {
             player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
             crossServerService.teleportCrossServer(player, cachedSpawn.getServer(), cachedSpawn.getWorld(),
                     cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(), cachedSpawn.getYaw(),
-                    cachedSpawn.getPitch());
+                    cachedSpawn.getPitch(), false);
         }
     }
 
@@ -105,6 +98,15 @@ public class SpawnService {
 
     public boolean hasSpawn() {
         return cachedSpawn != null;
+    }
+
+    public Location getSpawnLocation() {
+        if (cachedSpawn == null) return null;
+        if (!cachedSpawn.getServer().equals(getServerName())) return null;
+        World world = Bukkit.getWorld(cachedSpawn.getWorld());
+        if (world == null) return null;
+        return new Location(world, cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(),
+                cachedSpawn.getYaw(), cachedSpawn.getPitch());
     }
 
     private String getServerName() {

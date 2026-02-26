@@ -12,9 +12,10 @@ public class PendingTeleportMessage extends ValkeyMessage {
     public double z;
     public float yaw;
     public float pitch;
+    public boolean buildPortal;
 
     public PendingTeleportMessage(String serverId, String uuid, String targetServer, String world, double x, double y,
-            double z, float yaw, float pitch) {
+            double z, float yaw, float pitch, boolean buildPortal) {
         super("pending_teleport", serverId);
         this.uuid = uuid;
         this.targetServer = targetServer;
@@ -24,5 +25,6 @@ public class PendingTeleportMessage extends ValkeyMessage {
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
+        this.buildPortal = buildPortal;
     }
 }

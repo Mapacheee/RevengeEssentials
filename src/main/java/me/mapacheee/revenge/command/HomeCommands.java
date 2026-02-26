@@ -71,9 +71,9 @@ public class HomeCommands {
         });
     }
 
-    @Command("home [name]")
+    @Command("home <name>")
     @Permission("revenge.home")
-    public void home(Source source, @Default("default") @Argument(value = "name", suggestions = "homes") String name) {
+    public void home(Source source, @Argument(value = "name", suggestions = "homes") String name) {
         if (!(source.source() instanceof Player player))
             return;
 
@@ -88,6 +88,14 @@ public class HomeCommands {
                 homeService.teleportToHome(player, home);
             }, null);
         });
+    }
+
+    @Command("home")
+    @Permission("revenge.home")
+    public void homeRoot(Source source) {
+        if (!(source.source() instanceof Player player))
+            return;
+        homeGui.open(player);
     }
 
     @Command("delhome <name>")

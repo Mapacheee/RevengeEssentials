@@ -8,10 +8,11 @@ import me.mapacheee.revenge.channel.PlayerUpdateMessage;
 import me.mapacheee.revenge.api.RevengeCoreAPI;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.mongodb.client.model.Filters;
 import com.google.inject.Inject;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,31 +22,40 @@ public class PlayerDataService {
     private final PlayerRepository repository;
     private final ChannelService channelService;
     private final Gson gson = new Gson();
-    private final Set<String> allPlayerNames = ConcurrentHashMap.newKeySet();
 
     @Inject
     public PlayerDataService(PlayerRepository repository) {
         this.repository = repository;
         this.channelService = RevengeCoreAPI.get().getChannelService();
-
-        CompletableFuture.runAsync(() -> {
-            for (PlayerData pd : repository.findAll()) {
-                allPlayerNames.add(pd.getName());
-            }
-        });
     }
 
     public Set<String> getAllPlayerNames() {
-        return allPlayerNames;
+        RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+        RMapCache<String, String> uuidMap = redisson.getMapCache("revenge:uuidmap");
+        return uuidMap.readAllKeySet();
+    }
+
+    public CompletableFuture<UUID> getUUIDFromName(String name) {
+        return CompletableFuture.supplyAsync(() -> {
+            RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+            RMapCache<String, String> uuidMap = redisson.getMapCache("revenge:uuidmap");
+            
+            String cachedUuid = uuidMap.get(name.toLowerCase());
+            if (cachedUuid != null) {
+                return UUID.fromString(cachedUuid);
+            }
+            
+            PlayerData data = repository.findOne(Filters.regex("name", "^" + name + "$", "i"));
+            return data != null ? UUID.fromString(data.getUuid()) : null;
+        });
     }
 
     public CompletableFuture<PlayerData> getPlayerData(UUID uuid, String name) {
         return CompletableFuture.supplyAsync(() -> {
-            PlayerData data = repository.findOne(com.mongodb.client.model.Filters.eq("uuid", uuid.toString()));
+            PlayerData data = repository.findOne(Filters.eq("uuid", uuid.toString()));
             if (data == null) {
                 data = new PlayerData(uuid.toString(), name);
                 repository.save(data);
-                allPlayerNames.add(name);
             }
             return data;
         });

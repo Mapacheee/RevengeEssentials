@@ -3,35 +3,31 @@ package me.mapacheee.revenge.data;
 import me.mapacheee.revenge.identifiable.Identifiable;
 import org.bson.types.ObjectId;
 
-public class PendingTeleport implements Identifiable<ObjectId> {
+public class PortalData implements Identifiable<ObjectId> {
 
     private ObjectId id;
     private String uuid;
-    private String server;
-    private String world;
+    private String returnServer;
+    private String returnWorld;
     private double x;
     private double y;
     private double z;
     private float yaw;
     private float pitch;
-    private boolean buildPortal;
-    private long timestamp;
 
-    public PendingTeleport() {
+    public PortalData() {
     }
 
-    public PendingTeleport(String uuid, String server, String world, double x, double y, double z, float yaw,
-            float pitch, boolean buildPortal) {
+    public PortalData(String uuid, String returnServer, String returnWorld, double x, double y, double z, float yaw,
+            float pitch) {
         this.uuid = uuid;
-        this.server = server;
-        this.world = world;
+        this.returnServer = returnServer;
+        this.returnWorld = returnWorld;
         this.x = x;
         this.y = y;
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
-        this.buildPortal = buildPortal;
-        this.timestamp = System.currentTimeMillis();
     }
 
     @Override
@@ -52,20 +48,20 @@ public class PendingTeleport implements Identifiable<ObjectId> {
         this.uuid = uuid;
     }
 
-    public String getServer() {
-        return server;
+    public String getReturnServer() {
+        return returnServer;
     }
 
-    public void setServer(String server) {
-        this.server = server;
+    public void setReturnServer(String returnServer) {
+        this.returnServer = returnServer;
     }
 
-    public String getWorld() {
-        return world;
+    public String getReturnWorld() {
+        return returnWorld;
     }
 
-    public void setWorld(String world) {
-        this.world = world;
+    public void setReturnWorld(String returnWorld) {
+        this.returnWorld = returnWorld;
     }
 
     public double getX() {
@@ -106,21 +102,5 @@ public class PendingTeleport implements Identifiable<ObjectId> {
 
     public void setPitch(float pitch) {
         this.pitch = pitch;
-    }
-
-    public boolean isBuildPortal() {
-        return buildPortal;
-    }
-
-    public void setBuildPortal(boolean buildPortal) {
-        this.buildPortal = buildPortal;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
     }
 }

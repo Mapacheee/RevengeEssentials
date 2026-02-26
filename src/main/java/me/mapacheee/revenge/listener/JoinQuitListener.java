@@ -32,7 +32,7 @@ public class JoinQuitListener implements Listener {
         Player player = event.getPlayer();
 
         String parsed = format(player, messages.get().crossServerJoin());
-        joinQuitService.handleJoin(player.getName(), parsed);
+        joinQuitService.handleJoin(player, parsed);
     }
 
     @EventHandler
@@ -40,7 +40,7 @@ public class JoinQuitListener implements Listener {
         event.quitMessage(null);
         Player player = event.getPlayer();
         String parsed = format(player, messages.get().crossServerQuit());
-        joinQuitService.handleQuit(player.getName(), parsed);
+        joinQuitService.handleQuit(player, parsed);
     }
 
     private String format(Player player, String message) {

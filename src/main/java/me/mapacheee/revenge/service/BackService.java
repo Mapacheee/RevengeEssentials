@@ -84,7 +84,7 @@ public class BackService {
                 player.getScheduler().run(plugin, task -> {
                     player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().backCrossServer()));
                     crossServerService.teleportCrossServer(player, back.getServer(), back.getWorld(), back.getX(),
-                            back.getY(), back.getZ(), back.getYaw(), back.getPitch());
+                            back.getY(), back.getZ(), back.getYaw(), back.getPitch(), false);
                 }, null);
             }
         });

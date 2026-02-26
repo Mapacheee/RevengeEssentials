@@ -11,5 +11,8 @@ public record Config(
         int tpaTimeoutSeconds,
         int tpaCooldownSeconds,
         float defaultWalkSpeed,
-        float defaultFlySpeed) {
-}
+        float defaultFlySpeed,
+        String rtpTargetServer,
+        String rtpTargetWorld,
+        int rtpRadius,
+        int rtpCooldownSeconds) {}

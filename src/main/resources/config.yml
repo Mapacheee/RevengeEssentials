@@ -4,3 +4,7 @@ tpa-timeout-seconds: 30
 tpa-cooldown-seconds: 10
 default-walk-speed: 1
 default-fly-speed: 1
+rtp-target-server: "survival-overworld"
+rtp-target-world: "world"
+rtp-radius: 100
+rtp-cooldown-seconds: 60

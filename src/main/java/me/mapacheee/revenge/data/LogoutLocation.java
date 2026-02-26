@@ -3,39 +3,36 @@ package me.mapacheee.revenge.data;
 import me.mapacheee.revenge.identifiable.Identifiable;
 import org.bson.types.ObjectId;
 
-public class HomeData implements Identifiable<ObjectId> {
+import com.google.gson.annotations.SerializedName;
 
+public class LogoutLocation implements Identifiable<ObjectId> {
+
+    @SerializedName("_id")
     private ObjectId id;
     private String uuid;
-    private String name;
     private String server;
-    private String serverDisplayName;
-    private boolean defaultHome;
     private String world;
     private double x;
     private double y;
     private double z;
     private float yaw;
     private float pitch;
+    private long timestamp;
 
-    public HomeData() {
+    public LogoutLocation() {
     }
 
-    public HomeData(String uuid, String name, String server, String serverDisplayName, boolean defaultHome,
-            String world, double x, double y,
-            double z, float yaw,
+    public LogoutLocation(String uuid, String server, String world, double x, double y, double z, float yaw,
             float pitch) {
         this.uuid = uuid;
-        this.name = name;
         this.server = server;
-        this.serverDisplayName = serverDisplayName;
-        this.defaultHome = defaultHome;
         this.world = world;
         this.x = x;
         this.y = y;
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
+        this.timestamp = System.currentTimeMillis();
     }
 
     @Override
@@ -56,36 +53,12 @@ public class HomeData implements Identifiable<ObjectId> {
         this.uuid = uuid;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getServer() {
         return server;
     }
 
     public void setServer(String server) {
         this.server = server;
-    }
-
-    public String getServerDisplayName() {
-        return serverDisplayName != null ? serverDisplayName : server;
-    }
-
-    public void setServerDisplayName(String serverDisplayName) {
-        this.serverDisplayName = serverDisplayName;
-    }
-
-    public boolean isDefaultHome() {
-        return defaultHome;
-    }
-
-    public void setDefaultHome(boolean defaultHome) {
-        this.defaultHome = defaultHome;
     }
 
     public String getWorld() {
@@ -134,5 +107,13 @@ public class HomeData implements Identifiable<ObjectId> {
 
     public void setPitch(float pitch) {
         this.pitch = pitch;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

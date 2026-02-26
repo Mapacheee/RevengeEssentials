@@ -68,26 +68,33 @@ public class HomeGui implements Listener {
                     ItemStack item = new ItemStack(Material.ENDER_PEARL);
                     ItemMeta meta = item.getItemMeta();
                     meta.displayName(Component.text(home.getName())
-                            .color(TextColor.fromHexString("#F2AE2E"))
+                            .color(TextColor.fromHexString(home.isDefaultHome() ? "#2AE86C" : "#F2AE2E"))
                             .decoration(TextDecoration.ITALIC, false));
+                    if (home.isDefaultHome()) {
+                        meta.setEnchantmentGlintOverride(true);
+                    }
 
                     List<Component> lore = new ArrayList<>();
                     lore.add(Component.empty());
-                    lore.add(Component.text("Servidor: ").color(TextColor.fromHexString("#8A8A8A"))
-                            .append(Component.text(home.getServer()).color(TextColor.fromHexString("#F27B35")))
-                            .decoration(TextDecoration.ITALIC, false));
                     lore.add(Component.text("Mundo: ").color(TextColor.fromHexString("#8A8A8A"))
-                            .append(Component.text(home.getWorld()).color(TextColor.fromHexString("#F27B35")))
+                            .append(MiniMessage.miniMessage().deserialize(home.getServerDisplayName()))
                             .decoration(TextDecoration.ITALIC, false));
                     lore.add(Component
                             .text("X: " + (int) home.getX() + " Y: " + (int) home.getY() + " Z: " + (int) home.getZ())
                             .color(TextColor.fromHexString("#F28B30"))
                             .decoration(TextDecoration.ITALIC, false));
-                    lore.add(Component.empty());
+                    if (home.isDefaultHome()) {
+                        lore.add(Component.text("⭐ Seleccionado como Predeterminado")
+                                .color(TextColor.fromHexString("#55FF55")).decoration(TextDecoration.ITALIC, false));
+                        lore.add(Component.empty());
+                    }
                     lore.add(Component.text("▸ Click Izquierdo para teletransportarte")
                             .color(TextColor.fromHexString("#F2AE2E"))
                             .decoration(TextDecoration.ITALIC, false));
-                    lore.add(Component.text("▸ Click Derecho para eliminar").color(TextColor.fromHexString("#BF2A45"))
+                    lore.add(Component.text("▸ Click Derecho para seleccionar Principal")
+                            .color(TextColor.fromHexString("#36FF00"))
+                            .decoration(TextDecoration.ITALIC, false));
+                    lore.add(Component.text("▸ Shift-Click para eliminar").color(TextColor.fromHexString("#BF2A45"))
                             .decoration(TextDecoration.ITALIC, false));
                     meta.lore(lore);
                     item.setItemMeta(meta);
@@ -137,13 +144,22 @@ public class HomeGui implements Listener {
             if (home == null)
                 return;
 
-            if (event.isRightClick()) {
+            if (event.getClick().isShiftClick()) {
                 homeService.deleteHome(player.getUniqueId().toString(), home.getName()).thenRun(() -> {
                     player.getScheduler().run(plugin, task -> {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(
                                 messages.get().homeDeleted(),
-                                Placeholder.unparsed("home",
-                                        home.getName())));
+                                Placeholder.unparsed("home", home.getName())));
+                        player.closeInventory();
+                        open(player);
+                    }, null);
+                });
+            } else if (event.isRightClick()) {
+                homeService.setDefaultHome(player.getUniqueId().toString(), home.getName()).thenRun(() -> {
+                    player.getScheduler().run(plugin, task -> {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                messages.get().homeSetDefault(),
+                                Placeholder.unparsed("home", home.getName())));
                         player.closeInventory();
                         open(player);
                     }, null);

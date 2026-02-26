@@ -8,6 +8,7 @@ import me.mapacheee.revenge.channel.TpaRequestMessage;
 import me.mapacheee.revenge.channel.TpaResponseMessage;
 import me.mapacheee.revenge.service.ChannelService;
 import me.mapacheee.revenge.service.TeleportService;
+import java.util.concurrent.TimeUnit;
 import org.bukkit.plugin.Plugin;
 import org.slf4j.Logger;
 
@@ -39,16 +40,16 @@ public class EssentialsChannelListener {
                             this::handleTpaRequest, logger);
                     getChannelService().subscribe("essentials:tpa:response", TpaResponseMessage.class,
                             this::handleTpaResponse, logger);
-                }, 2, java.util.concurrent.TimeUnit.SECONDS);
+                }, 2, TimeUnit.SECONDS);
     }
 
     private void handleTpaRequest(TpaRequestMessage req) {
         teleportService.handleIncomingTpaRequest(req.senderUuid, req.senderName, req.targetName, req.tpaHere,
-                req.senderServer);
+                req.senderServer, req.reqWorld, req.reqX, req.reqY, req.reqZ, req.reqYaw, req.reqPitch);
     }
 
     private void handleTpaResponse(TpaResponseMessage resp) {
-        teleportService.handleTpaResponse(resp.senderUuid, resp.targetName, resp.accepted, resp.targetServer,
+        teleportService.handleTpaResponse(resp.senderUuid, resp.targetName, resp.accepted, resp.tpaHere, resp.targetServer,
                 resp.targetWorld, resp.x, resp.y, resp.z, resp.yaw, resp.pitch);
     }
 }

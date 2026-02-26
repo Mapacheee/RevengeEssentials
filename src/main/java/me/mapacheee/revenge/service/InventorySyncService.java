@@ -3,15 +3,14 @@ package me.mapacheee.revenge.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
-import com.thewinterframework.configurate.Container;
 import com.thewinterframework.service.annotation.Service;
-import me.mapacheee.revenge.config.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,14 +27,12 @@ public class InventorySyncService {
 
     private final PlayerDataService playerDataService;
     private final Plugin plugin;
-    private final Container<Config> config;
     private final Gson gson = new Gson();
     private final Set<UUID> syncingPlayers = ConcurrentHashMap.newKeySet();
 
     @Inject
-    public InventorySyncService(Plugin plugin, Container<Config> config, PlayerDataService playerDataService) {
+    public InventorySyncService(Plugin plugin, PlayerDataService playerDataService) {
         this.plugin = plugin;
-        this.config = config;
         this.playerDataService = playerDataService;
     }
 
@@ -65,6 +62,7 @@ public class InventorySyncService {
             data.addProperty("walkSpeed", player.getWalkSpeed());
             data.addProperty("flySpeed", player.getFlySpeed());
             data.addProperty("gamemode", player.getGameMode().name());
+            data.addProperty("godmode", player.isInvulnerable());
 
             String json = gson.toJson(data);
 
@@ -123,12 +121,9 @@ public class InventorySyncService {
                                     player.getInventory().setItemInOffHand(offhand[0]);
                                 }
                             }
-                            if (data.has("xpLevel"))
-                                player.setLevel(data.get("xpLevel").getAsInt());
-                            if (data.has("xp"))
-                                player.setExp(data.get("xp").getAsFloat());
-                            if (data.has("totalXp"))
-                                player.setTotalExperience(data.get("totalXp").getAsInt());
+                            if (data.has("xpLevel")) player.setLevel(data.get("xpLevel").getAsInt());
+                            if (data.has("xp")) player.setExp(data.get("xp").getAsFloat());
+                            if (data.has("totalXp")) player.setTotalExperience(data.get("totalXp").getAsInt());
                             if (data.has("flyEnabled")) {
                                 boolean fly = data.get("flyEnabled").getAsBoolean();
                                 player.setAllowFlight(fly);
@@ -136,16 +131,46 @@ public class InventorySyncService {
                                         .isPassable();
                                 player.setFlying(fly && inAir);
                             }
-                            if (data.has("walkSpeed"))
-                                player.setWalkSpeed(data.get("walkSpeed").getAsFloat());
-                            if (data.has("flySpeed"))
-                                player.setFlySpeed(data.get("flySpeed").getAsFloat());
+                            if (data.has("walkSpeed")) player.setWalkSpeed(data.get("walkSpeed").getAsFloat());
+                            if (data.has("flySpeed")) player.setFlySpeed(data.get("flySpeed").getAsFloat());
                             if (data.has("gamemode")) {
                                 try {
                                     player.setGameMode(GameMode.valueOf(data.get("gamemode").getAsString()));
                                 } catch (IllegalArgumentException ignored) {
                                 }
                             }
+                            if (data.has("godmode")) {
+                                player.setInvulnerable(data.get("godmode").getAsBoolean());
+                            }
+                            
+                            boolean needsSave = false;
+                            if (playerData.getQueuedGodmode() != null) {
+                                player.setInvulnerable(playerData.getQueuedGodmode());
+                                playerData.setQueuedGodmode(null);
+                                needsSave = true;
+                            }
+                            if (playerData.getQueuedGamemode() != null) {
+                                try {
+                                    player.setGameMode(GameMode.valueOf(playerData.getQueuedGamemode()));
+                                } catch (IllegalArgumentException ignored) {}
+                                playerData.setQueuedGamemode(null);
+                                needsSave = true;
+                            }
+                            if (playerData.getQueuedHeal() != null && playerData.getQueuedHeal()) {
+                                double maxHealth = player.getAttribute(Attribute.MAX_HEALTH) != null 
+                                    ? player.getAttribute(Attribute.MAX_HEALTH).getValue() : 20.0;
+                                player.setHealth(maxHealth);
+                                player.setFoodLevel(20);
+                                player.setFireTicks(0);
+                                player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
+                                playerData.setQueuedHeal(null);
+                                needsSave = true;
+                            }
+                            
+                            if (needsSave) {
+                                getPlayerDataService().savePlayerData(playerData);
+                            }
+                            
                         } finally {
                             syncingPlayers.remove(player.getUniqueId());
                         }

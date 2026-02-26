@@ -56,8 +56,11 @@ public class TeleportService {
 
         Player target = Bukkit.getPlayer(targetName);
         if (target != null && target.isOnline()) {
+            Location loc = sender.getLocation();
             pendingRequests.put(target.getUniqueId(), new TpaRequest(sender.getUniqueId(), sender.getName(),
-                    target.getUniqueId(), target.getName(), tpaHere, getServerName(), System.currentTimeMillis()));
+                    target.getUniqueId(), target.getName(), tpaHere, getServerName(),
+                    loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(),
+                    System.currentTimeMillis()));
             setCooldown(sender.getUniqueId());
 
             sender.sendMessage(MiniMessage.miniMessage().deserialize(
@@ -69,9 +72,11 @@ public class TeleportService {
             return;
         }
 
+        Location loc = sender.getLocation();
         TpaRequestMessage msg = new TpaRequestMessage(
                 getServerName(), sender.getUniqueId().toString(), sender.getName(),
-                "", targetName, tpaHere, getServerName());
+                "", targetName, tpaHere, getServerName(),
+                loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
         getChannelService().publish("essentials:tpa:request", msg);
         setCooldown(sender.getUniqueId());
         sender.sendMessage(MiniMessage.miniMessage().deserialize(
@@ -101,10 +106,13 @@ public class TeleportService {
                 sender.getScheduler().run(plugin, task -> sender.teleportAsync(target.getLocation()), null);
             }
         } else {
+            if (request.tpaHere()) {
+                crossServerService.teleportCrossServer(target, request.senderServer(), request.reqWorld(), request.reqX(), request.reqY(), request.reqZ(), request.reqYaw(), request.reqPitch(), false);
+            }
             Location loc = target.getLocation();
             TpaResponseMessage response = new TpaResponseMessage(
                     getServerName(), request.senderUuid().toString(), target.getUniqueId().toString(),
-                    target.getName(), true, getServerName(), loc.getWorld().getName(),
+                    target.getName(), true, request.tpaHere(), getServerName(), loc.getWorld().getName(),
                     loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
             getChannelService().publish("essentials:tpa:response", response);
         }
@@ -129,7 +137,7 @@ public class TeleportService {
         } else {
             TpaResponseMessage response = new TpaResponseMessage(
                     getServerName(), request.senderUuid().toString(), target.getUniqueId().toString(),
-                    target.getName(), false, getServerName(), "", 0, 0, 0, 0, 0);
+                    target.getName(), false, request.tpaHere(), getServerName(), "", 0, 0, 0, 0, 0);
             getChannelService().publish("essentials:tpa:response", response);
         }
     }
@@ -142,13 +150,14 @@ public class TeleportService {
     }
 
     public void handleIncomingTpaRequest(String senderUuid, String senderName, String targetName, boolean tpaHere,
-            String senderServer) {
+            String senderServer, String reqWorld, double reqX, double reqY, double reqZ, float reqYaw, float reqPitch) {
         Player target = Bukkit.getPlayer(targetName);
         if (target == null || !target.isOnline())
             return;
 
         pendingRequests.put(target.getUniqueId(), new TpaRequest(
                 UUID.fromString(senderUuid), senderName, target.getUniqueId(), target.getName(), tpaHere, senderServer,
+                reqWorld, reqX, reqY, reqZ, reqYaw, reqPitch,
                 System.currentTimeMillis()));
 
         target.sendMessage(MiniMessage.miniMessage().deserialize(
@@ -156,7 +165,7 @@ public class TeleportService {
                 Placeholder.unparsed("player", senderName)));
     }
 
-    public void handleTpaResponse(String senderUuid, String targetName, boolean accepted, String targetServer,
+    public void handleTpaResponse(String senderUuid, String targetName, boolean accepted, boolean tpaHere, String targetServer,
             String targetWorld, double x, double y, double z, float yaw, float pitch) {
         Player sender = Bukkit.getPlayer(UUID.fromString(senderUuid));
         if (sender == null || !sender.isOnline())
@@ -166,8 +175,10 @@ public class TeleportService {
             sender.sendMessage(MiniMessage.miniMessage().deserialize(
                     messages.get().tpaRequestAcceptedSender(),
                     Placeholder.unparsed("player", targetName)));
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
-            crossServerService.teleportCrossServer(sender, targetServer, targetWorld, x, y, z, yaw, pitch);
+            if (!tpaHere) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
+                crossServerService.teleportCrossServer(sender, targetServer, targetWorld, x, y, z, yaw, pitch, false);
+            }
         } else {
             sender.sendMessage(MiniMessage.miniMessage().deserialize(
                     messages.get().tpaRequestDeniedSender(),
@@ -215,6 +226,6 @@ public class TeleportService {
     }
 
     public record TpaRequest(UUID senderUuid, String senderName, UUID targetUuid, String targetName, boolean tpaHere,
-            String senderServer, long timestamp) {
+            String senderServer, String reqWorld, double reqX, double reqY, double reqZ, float reqYaw, float reqPitch, long timestamp) {
     }
 }

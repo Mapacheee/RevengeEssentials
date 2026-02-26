@@ -35,16 +35,17 @@ public class CrossServerService {
         RevengeCoreAPI.get().getChannelService().subscribe(PENDING_TP_CHANNEL, PendingTeleportMessage.class, msg -> {
             if (msg.targetServer.equals(getServerName())) {
                 setPendingTeleport(UUID.fromString(msg.uuid), msg.targetServer, msg.world, msg.x, msg.y, msg.z, msg.yaw,
-                        msg.pitch);
+                        msg.pitch, msg.buildPortal);
             }
         }, plugin.getSLF4JLogger());
     }
 
     public void setPendingTeleport(UUID uuid, String server, String world, double x, double y, double z, float yaw,
-            float pitch) {
+            float pitch, boolean buildPortal) {
         Bukkit.getAsyncScheduler().runNow(plugin, task -> {
             pendingTeleportRepository.delete(Filters.eq("uuid", uuid.toString()));
-            PendingTeleport pending = new PendingTeleport(uuid.toString(), server, world, x, y, z, yaw, pitch);
+            PendingTeleport pending = new PendingTeleport(uuid.toString(), server, world, x, y, z, yaw, pitch,
+                    buildPortal);
             pendingTeleportRepository.save(pending);
         });
     }
@@ -60,7 +61,7 @@ public class CrossServerService {
     }
 
     public void teleportCrossServer(Player player, String server, String world, double x, double y, double z, float yaw,
-            float pitch) {
+            float pitch, boolean buildPortal) {
 
         Bukkit.getAsyncScheduler().runNow(plugin, task -> {
             PendingTeleportMessage msg = new PendingTeleportMessage(
@@ -68,7 +69,7 @@ public class CrossServerService {
                     player.getUniqueId().toString(),
                     server,
                     world,
-                    x, y, z, yaw, pitch);
+                    x, y, z, yaw, pitch, buildPortal);
             try {
                 RevengeCoreAPI.get().getChannelService().publish(PENDING_TP_CHANNEL, msg);
             } catch (Exception e) {
@@ -86,12 +87,52 @@ public class CrossServerService {
                 return;
             Location loc = new Location(w, pending.getX(), pending.getY(), pending.getZ(), pending.getYaw(),
                     pending.getPitch());
-            player.getScheduler().run(plugin, task -> {
-                player.setMetadata("revenge_skip_back_save", new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                player.teleportAsync(loc).thenAccept(result -> {
-                    player.removeMetadata("revenge_skip_back_save", plugin);
+
+            if (pending.isBuildPortal()) {
+                double safeY = Math.max(32, Math.min(100, loc.getY()));
+                loc.setY(safeY);
+
+                Bukkit.getRegionScheduler().run(plugin, loc, task -> {
+                    int bx = loc.getBlockX();
+                    int by = loc.getBlockY();
+                    int bz = loc.getBlockZ();
+
+                    for (int offsetX = -1; offsetX <= 2; offsetX++) {
+                        for (int offsetY = -1; offsetY <= 3; offsetY++) {
+                            if (offsetX == -1 || offsetX == 2 || offsetY == -1 || offsetY == 3) {
+                                w.getBlockAt(bx + offsetX, by + offsetY, bz).setType(org.bukkit.Material.OBSIDIAN);
+                            } 
+                            else {
+
+                                w.getBlockAt(bx + offsetX, by + offsetY, bz).setType(org.bukkit.Material.NETHER_PORTAL);
+                            }
+                        }
+                    }
+
+                    for (int offsetX = -2; offsetX <= 3; offsetX++) {
+                        for (int offsetZ = -2; offsetZ <= 2; offsetZ++) {
+                            w.getBlockAt(bx + offsetX, by - 1, bz + offsetZ).setType(org.bukkit.Material.OBSIDIAN);
+                        }
+                    }
+
+                    player.getScheduler().run(plugin, teleportTask -> {
+                        player.setMetadata("revenge_skip_back_save",
+                                new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                        player.teleportAsync(loc).thenAccept(result -> {
+                            player.removeMetadata("revenge_skip_back_save", plugin);
+                        });
+                    }, null);
                 });
-            }, null);
+            } 
+            else {
+                player.getScheduler().run(plugin, task -> {
+                    player.setMetadata("revenge_skip_back_save",
+                            new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                    player.teleportAsync(loc).thenAccept(result -> {
+                        player.removeMetadata("revenge_skip_back_save", plugin);
+                    });
+                }, null);
+            }
             clearPendingTeleport(player.getUniqueId());
         });
     }
