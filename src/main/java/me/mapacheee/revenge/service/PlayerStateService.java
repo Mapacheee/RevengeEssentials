@@ -9,6 +9,9 @@ import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.channel.CrossGamemodeMessage;
 import me.mapacheee.revenge.channel.CrossGodModeMessage;
 import me.mapacheee.revenge.channel.CrossHealMessage;
+import me.mapacheee.revenge.channel.CrossHealAllMessage;
+import me.mapacheee.revenge.channel.CrossGodModeAllMessage;
+import me.mapacheee.revenge.channel.CrossGamemodeAllMessage;
 import me.mapacheee.revenge.channel.CrossFeedbackMessage;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -56,6 +59,25 @@ public class PlayerStateService {
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 boolean newState = msg.getEnabled() != null ? msg.getEnabled() : !targetPlayer.isInvulnerable();
                 applyGodModeLocal(targetPlayer, msg.getSenderName(), newState);
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:heal_all", CrossHealAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                applyHealLocal(p, msg.senderName);
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:godmode_all", CrossGodModeAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                boolean newState = msg.enabled != null ? msg.enabled : !p.isInvulnerable();
+                applyGodModeLocal(p, msg.senderName, newState);
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:gamemode_all", CrossGamemodeAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                applyGamemodeLocal(p, msg.senderName, msg.gameMode);
             }
         }, plugin.getSLF4JLogger());
 

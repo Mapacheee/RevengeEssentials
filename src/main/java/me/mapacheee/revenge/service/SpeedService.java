@@ -11,6 +11,7 @@ import me.mapacheee.revenge.config.Messages;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import me.mapacheee.revenge.channel.CrossSpeedAllMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import me.mapacheee.revenge.channel.CrossFeedbackMessage;
@@ -43,6 +44,12 @@ public class SpeedService {
             Player targetPlayer = Bukkit.getPlayerExact(msg.getTargetName());
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 applySpeedLocal(targetPlayer, msg.getSenderName(), msg.getSpeed(), msg.getType());
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:speed_all", CrossSpeedAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                applySpeedLocal(p, msg.senderName, msg.value, msg.type);
             }
         }, plugin.getSLF4JLogger());
     }

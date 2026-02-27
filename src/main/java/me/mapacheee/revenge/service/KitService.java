@@ -13,6 +13,7 @@ import org.redisson.api.RTopic;
 import org.bukkit.Material;
 import java.util.UUID;
 import me.mapacheee.revenge.api.RevengeCoreAPI;
+import me.mapacheee.revenge.channel.CrossKitGiveAllMessage;
 import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,17 +38,19 @@ public class KitService {
     private final ValkeyService valkeyService;
     private final Plugin plugin;
     private final Container<Messages> messages;
+    private final PlayerDataService playerDataService;
     
     private final Map<String, Kit> cachedKits = new ConcurrentHashMap<>();
     private KitGuiData guiData;
 
     @Inject
-    public KitService(KitRepository kitRepository, KitGuiRepository kitGuiRepository, Plugin plugin, Container<Messages> messages) {
+    public KitService(KitRepository kitRepository, KitGuiRepository kitGuiRepository, Plugin plugin, Container<Messages> messages, PlayerDataService playerDataService) {
         this.kitRepository = kitRepository;
         this.kitGuiRepository = kitGuiRepository;
         this.valkeyService = RevengeCoreAPI.get().getRedisService();
         this.plugin = plugin;
         this.messages = messages;
+        this.playerDataService = playerDataService;
     }
 
     @OnEnable
@@ -58,6 +61,15 @@ public class KitService {
         plugin.getSLF4JLogger().info("Loaded {} Kits from mongodb.", cachedKits.size());
 
         loadGuiData();
+
+        RevengeCoreAPI.get().getChannelService().subscribe("revenge:kit_give_all", CrossKitGiveAllMessage.class, msg -> {
+            Kit kit = getKit(msg.kitName);
+            if (kit != null) {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    giveVoucher(p.getName(), kit, playerDataService);
+                }
+            }
+        }, plugin.getSLF4JLogger());
 
         RTopic topic = valkeyService.client().getTopic("revenge:kit_gui");
         topic.addListener(String.class, (channel, msg) -> {

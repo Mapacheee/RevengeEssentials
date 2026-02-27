@@ -2,11 +2,16 @@ package me.mapacheee.revenge.command;
 
 import com.google.inject.Inject;
 import com.thewinterframework.command.CommandComponent;
+import com.thewinterframework.configurate.Container;
+import me.mapacheee.revenge.api.RevengeCoreAPI;
+import me.mapacheee.revenge.channel.CrossFlyAllMessage;
+import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.service.FlyService;
 import me.mapacheee.revenge.service.PlayerDataService;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.incendo.cloud.annotations.Permission;
 import org.incendo.cloud.annotations.suggestion.Suggestions;
 import org.incendo.cloud.context.CommandContext;
@@ -21,11 +26,13 @@ public class FlyCommand {
 
     private final FlyService flyService;
     private final PlayerDataService playerDataService;
+    private final Container<Messages> messages;
 
     @Inject
-    public FlyCommand(FlyService flyService, PlayerDataService playerDataService) {
+    public FlyCommand(FlyService flyService, PlayerDataService playerDataService, Container<Messages> messages) {
         this.flyService = flyService;
         this.playerDataService = playerDataService;
+        this.messages = messages;
     }
 
     @Suggestions("players")
@@ -48,6 +55,18 @@ public class FlyCommand {
     @Command("fly <target>")
     @Permission("revenge.fly.others")
     public void flyOther(Source source, @Argument(value = "target", suggestions = "players") String target) {
+        if (target.equalsIgnoreCase("@a")) {
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:fly_all",
+                new CrossFlyAllMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    source.source() instanceof Player ? ((Player) source.source()).getName() : "Console",
+                    null
+                )
+            );
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.get().flyEnabledAll()));
+            return;
+        }
         flyService.toggleFly(source, target);
     }
 }

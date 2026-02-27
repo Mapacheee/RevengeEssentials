@@ -2,6 +2,7 @@ package me.mapacheee.revenge.command;
 
 import com.google.inject.Inject;
 import com.thewinterframework.command.CommandComponent;
+import me.mapacheee.revenge.api.RevengeCoreAPI;
 import com.thewinterframework.configurate.Container;
 import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.service.TeleportService;
@@ -9,6 +10,8 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import me.mapacheee.revenge.channel.CrossTeleportAllMessage;
+import me.mapacheee.revenge.channel.CrossTeleportHereMessage;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
@@ -87,5 +90,63 @@ public class TeleportCommands {
         if (!(source.source() instanceof Player player))
             return;
         teleportService.denyTpa(player);
+    }
+
+    @Command("tphere <target>")
+    @Permission("revenge.tphere")
+    public void tphere(Source source, @Argument(value = "target", suggestions = "players") String target) {
+        if (!(source.source() instanceof Player player)) {
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize("<red>Este comando solo puede ejecutarse en el juego.</red>"));
+            return;
+        }
+
+        if (target.equalsIgnoreCase("@a")) {
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:tphere_all",
+                new CrossTeleportAllMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    player.getName(),
+                    RevengeCoreAPI.get().getServerName(),
+                    player.getLocation().getX(),
+                    player.getLocation().getY(),
+                    player.getLocation().getZ(),
+                    player.getLocation().getYaw(),
+                    player.getLocation().getPitch(),
+                    player.getLocation().getWorld().getName()
+                )
+            );
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().tpaHereAll()));
+            return;
+        }
+
+        Player localTarget = Bukkit.getPlayerExact(target);
+        if (localTarget != null) {
+            localTarget.teleportAsync(player.getLocation()).thenRun(() -> {
+                localTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandTphereReceived(),
+                    Placeholder.parsed("sender", player.getName())
+                ));
+            });
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandTphereTeleporting(),
+                Placeholder.parsed("target", localTarget.getName())
+            ));
+        } else {
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:tphere",
+                new CrossTeleportHereMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    target,
+                    RevengeCoreAPI.get().getServerName(),
+                    player.getLocation().getX(),
+                    player.getLocation().getY(),
+                    player.getLocation().getZ(),
+                    player.getLocation().getYaw(),
+                    player.getLocation().getPitch(),
+                    player.getLocation().getWorld().getName()
+                )
+            );
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandTphereTeleporting(),
+                Placeholder.parsed("target", target)
+            ));
+        }
     }
 }

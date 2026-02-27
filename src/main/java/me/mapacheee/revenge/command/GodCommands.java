@@ -2,6 +2,10 @@ package me.mapacheee.revenge.command;
 
 import com.google.inject.Inject;
 import com.thewinterframework.command.CommandComponent;
+import com.thewinterframework.configurate.Container;
+import me.mapacheee.revenge.api.RevengeCoreAPI;
+import me.mapacheee.revenge.channel.CrossGodModeAllMessage;
+import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.service.PlayerStateService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
@@ -23,11 +27,13 @@ public class GodCommands {
 
     private final PlayerStateService playerStateService;
     private final PlayerDataService playerDataService;
+    private final Container<Messages> messages;
 
     @Inject
-    public GodCommands(PlayerStateService playerStateService, PlayerDataService playerDataService) {
+    public GodCommands(PlayerStateService playerStateService, PlayerDataService playerDataService, Container<Messages> messages) {
         this.playerStateService = playerStateService;
         this.playerDataService = playerDataService;
+        this.messages = messages;
     }
 
     @Suggestions("players")
@@ -42,6 +48,22 @@ public class GodCommands {
     public void god(Source source, @Nullable @Argument(value = "target", suggestions = "players") String target) {
         if (target == null && !(source.source() instanceof Player)) {
             source.source().sendMessage(MiniMessage.miniMessage().deserialize("<red>Se debe especificar un jugador en consola.</red>"));
+            return;
+        }
+
+        if (target != null && target.equalsIgnoreCase("@a")) {
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:godmode_all",
+                new CrossGodModeAllMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    source.source() instanceof Player ? ((Player) source.source()).getName() : "Console",
+                    null
+                )
+            );
+            
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize(
+                messages.get().godmodeUpdatedAll()
+            ));
             return;
         }
 

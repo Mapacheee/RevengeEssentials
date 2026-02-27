@@ -3,6 +3,8 @@ package me.mapacheee.revenge.command;
 import com.google.inject.Inject;
 import com.thewinterframework.command.CommandComponent;
 import com.thewinterframework.configurate.Container;
+import me.mapacheee.revenge.api.RevengeCoreAPI;
+import me.mapacheee.revenge.channel.CrossKitGiveAllMessage;
 import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.data.Kit;
 import me.mapacheee.revenge.service.KitService;
@@ -83,6 +85,21 @@ public class KitCommands {
         Kit kit = kitService.getKit(kitName);
         if (kit == null) {
             source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.get().prefix() + messages.get().kitNotFound()));
+            return;
+        }
+
+        if (target.equalsIgnoreCase("@a")) {
+            for (int i = 0; i < amount; i++) {
+                RevengeCoreAPI.get().getChannelService().publish(
+                    "revenge:kit_give_all",
+                    new CrossKitGiveAllMessage(
+                        RevengeCoreAPI.get().getServerName(),
+                        kitName,
+                        source.source() instanceof Player ? ((Player) source.source()).getName() : "Console"
+                    )
+                );
+            }
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.get().prefix() + messages.get().kitGiveAll(), net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.parsed("amount", String.valueOf(amount)), net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.parsed("kit", kitName)));
             return;
         }
 

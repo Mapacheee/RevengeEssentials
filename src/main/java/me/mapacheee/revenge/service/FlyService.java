@@ -8,6 +8,7 @@ import me.mapacheee.revenge.api.RevengeCoreAPI;
 import me.mapacheee.revenge.channel.CrossFlyMessage;
 import me.mapacheee.revenge.channel.CrossFeedbackMessage;
 import me.mapacheee.revenge.config.Messages;
+import me.mapacheee.revenge.channel.CrossFlyAllMessage;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
@@ -39,6 +40,13 @@ public class FlyService {
             Player targetPlayer = Bukkit.getPlayerExact(msg.getTargetName());
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 applyFlyLocal(targetPlayer, msg.getSenderName(), msg.getState());
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:fly_all",CrossFlyAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                boolean newState = msg.enabled != null ? msg.enabled : !p.getAllowFlight();
+                applyFlyLocal(p, msg.senderName, newState);
             }
         }, plugin.getSLF4JLogger());
     }
