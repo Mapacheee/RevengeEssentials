@@ -7,6 +7,7 @@ import com.thewinterframework.service.annotation.Service;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.Material;
@@ -164,6 +165,14 @@ public class InventorySyncService {
                                 player.setFireTicks(0);
                                 player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
                                 playerData.setQueuedHeal(null);
+                                needsSave = true;
+                            }
+                            
+                            if (playerData.getOfflineMessages() != null && !playerData.getOfflineMessages().isEmpty()) {
+                                for (String msg : playerData.getOfflineMessages()) {
+                                    player.sendMessage(MiniMessage.miniMessage().deserialize(msg));
+                                }
+                                playerData.getOfflineMessages().clear();
                                 needsSave = true;
                             }
                             

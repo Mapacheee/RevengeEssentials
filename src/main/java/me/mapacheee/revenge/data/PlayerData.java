@@ -2,6 +2,10 @@ package me.mapacheee.revenge.data;
 
 import me.mapacheee.revenge.identifiable.Identifiable;
 import org.bson.types.ObjectId;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import com.google.gson.annotations.SerializedName;
 
 public class PlayerData implements Identifiable<ObjectId> {
@@ -16,6 +20,9 @@ public class PlayerData implements Identifiable<ObjectId> {
     private Boolean queuedGodmode;
     private String queuedGamemode;
     private Boolean queuedHeal;
+    private Map<String, Long> kitCooldowns;
+    private Map<String, Integer> pendingKits;
+    private List<String> offlineMessages;
 
     public PlayerData() {
     }
@@ -26,6 +33,9 @@ public class PlayerData implements Identifiable<ObjectId> {
         this.xp = 0;
         this.lastLocation = "{}";
         this.inventory = "{}";
+        this.kitCooldowns = new ConcurrentHashMap<>();
+        this.pendingKits = new ConcurrentHashMap<>();
+        this.offlineMessages = new ArrayList<>();
     }
 
     @Override
@@ -100,5 +110,32 @@ public class PlayerData implements Identifiable<ObjectId> {
 
     public void setQueuedHeal(Boolean queuedHeal) {
         this.queuedHeal = queuedHeal;
+    }
+
+    public Map<String, Long> getKitCooldowns() {
+        if (kitCooldowns == null) kitCooldowns = new ConcurrentHashMap<>();
+        return kitCooldowns;
+    }
+
+    public void setKitCooldowns(Map<String, Long> kitCooldowns) {
+        this.kitCooldowns = kitCooldowns;
+    }
+
+    public Map<String, Integer> getPendingKits() {
+        if (pendingKits == null) pendingKits = new ConcurrentHashMap<>();
+        return pendingKits;
+    }
+
+    public void setPendingKits(Map<String, Integer> pendingKits) {
+        this.pendingKits = pendingKits;
+    }
+
+    public List<String> getOfflineMessages() {
+        if (offlineMessages == null) offlineMessages = new ArrayList<>();
+        return offlineMessages;
+    }
+
+    public void setOfflineMessages(List<String> offlineMessages) {
+        this.offlineMessages = offlineMessages;
     }
 }
