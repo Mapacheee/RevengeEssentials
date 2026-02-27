@@ -157,3 +157,6 @@ warp-already-exists: "<#5B5B5B>「<#F2AE2E>✨<#5B5B5B>」<reset> <#8A8A8A>Warp 
 warp-set-success: "<#5B5B5B>「<#29C54D>✔<#5B5B5B>」<reset> <#8A8A8A>Warp <#F27B35><warp> <#8A8A8A>establecido."
 warp-not-found: "<#5B5B5B>「<#FF4A4A>❗<#5B5B5B>」<reset> <#8A8A8A>Warp no encontrado."
 warps-empty: "<#5B5B5B>「<#FF4A4A>❗<#5B5B5B>」<reset> <#8A8A8A>No hay warps globales disponibles por ahora."
+teleport-warmup: "<#5B5B5B>「<#FF4A4A>⌛<#5B5B5B>」<reset> <#8A8A8A>Serás teletransportado en <#F27B35><seconds> <#8A8A8A>segundos. ¡No te muevas!"
+teleport-cancelled-movement: "<#5B5B5B>「<#FF4A4A>❌<#5B5B5B>」<reset> <#8A8A8A>Teletransportación cancelada por movimiento."
+teleport-cancelled-damage: "<#5B5B5B>「<#FF4A4A>❌<#5B5B5B>」<reset> <#8A8A8A>Teletransportación cancelada por daño recibido."

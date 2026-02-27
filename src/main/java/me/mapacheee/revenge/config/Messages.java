@@ -164,4 +164,7 @@ public record Messages(
         String warpAlreadyExists,
         String warpSetSuccess,
         String warpNotFound,
-        String warpsEmpty) {}
+        String warpsEmpty,
+        String teleportWarmup,
+        String teleportCancelledMovement,
+        String teleportCancelledDamage) {}

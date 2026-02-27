@@ -9,6 +9,7 @@ import me.mapacheee.revenge.data.WarpGuiData;
 import me.mapacheee.revenge.service.InventorySyncService;
 import me.mapacheee.revenge.service.WarpService;
 import me.mapacheee.revenge.service.CrossServerService;
+import me.mapacheee.revenge.listener.TeleportWarmupListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -41,6 +42,7 @@ public class WarpGui implements Listener {
     private final Container<Messages> messages;
     private final InventorySyncService inventorySyncService;
     private final Plugin plugin;
+    private final TeleportWarmupListener teleportWarmupListener;
     
     private static final int PREV_PAGE_SLOT = 45;
     private static final int NEXT_PAGE_SLOT = 53;
@@ -53,12 +55,13 @@ public class WarpGui implements Listener {
     );
 
     @Inject
-    public WarpGui(WarpService warpService, CrossServerService crossServerService, Container<Messages> messages, InventorySyncService inventorySyncService, Plugin plugin) {
+    public WarpGui(WarpService warpService, CrossServerService crossServerService, Container<Messages> messages, InventorySyncService inventorySyncService, Plugin plugin, TeleportWarmupListener teleportWarmupListener) {
         this.warpService = warpService;
         this.crossServerService = crossServerService;
         this.messages = messages;
         this.inventorySyncService = inventorySyncService;
         this.plugin = plugin;
+        this.teleportWarmupListener = teleportWarmupListener;
     }
 
     public void open(Player player, int page) {
@@ -235,19 +238,21 @@ public class WarpGui implements Listener {
             Warp warp = warpService.getWarp(warpName);
             if (warp != null) {
                 player.closeInventory();
-                String tMsg = messages.get().warpTeleporting() != null ? messages.get().warpTeleporting() : "<yellow>Teletransportando a <warp>...";
-                player.sendMessage(MiniMessage.miniMessage().deserialize(tMsg, Placeholder.parsed("warp", warp.getName())));
-                crossServerService.teleportCrossServer(
-                    player,
-                    warp.getServer(),
-                    warp.getWorld(),
-                    warp.getX(),
-                    warp.getY(),
-                    warp.getZ(),
-                    warp.getYaw(),
-                    warp.getPitch(),
-                    false
-                );
+                teleportWarmupListener.startWarmup(player, () -> {
+                    String tMsg = messages.get().warpTeleporting() != null ? messages.get().warpTeleporting() : "<yellow>Teletransportando a <warp>...";
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(tMsg, Placeholder.parsed("warp", warp.getName())));
+                    crossServerService.teleportCrossServer(
+                        player,
+                        warp.getServer(),
+                        warp.getWorld(),
+                        warp.getX(),
+                        warp.getY(),
+                        warp.getZ(),
+                        warp.getYaw(),
+                        warp.getPitch(),
+                        false
+                    );
+                });
             }
         }
     }

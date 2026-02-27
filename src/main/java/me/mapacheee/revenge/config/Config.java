@@ -16,4 +16,5 @@ public record Config(
         String rtpTargetWorld,
         int rtpRadius,
         int rtpCooldownSeconds,
-        int autoSaveIntervalMinutes) {}
+        int autoSaveIntervalMinutes,
+        int teleportWarmupSeconds) {}

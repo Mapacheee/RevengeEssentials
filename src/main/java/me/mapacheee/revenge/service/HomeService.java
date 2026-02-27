@@ -12,6 +12,7 @@ import me.mapacheee.revenge.data.HomeRepository;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import me.mapacheee.revenge.listener.TeleportWarmupListener;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -28,15 +29,17 @@ public class HomeService {
     private final Container<Config> config;
     private final Container<Messages> messages;
     private final Plugin plugin;
+    private final TeleportWarmupListener teleportWarmupListener;
 
     @Inject
     public HomeService(HomeRepository homeRepository, CrossServerService crossServerService, Container<Config> config,
-            Container<Messages> messages, Plugin plugin) {
+            Container<Messages> messages, Plugin plugin, TeleportWarmupListener teleportWarmupListener) {
         this.homeRepository = homeRepository;
         this.crossServerService = crossServerService;
         this.config = config;
         this.messages = messages;
         this.plugin = plugin;
+        this.teleportWarmupListener = teleportWarmupListener;
     }
 
     public CompletableFuture<Boolean> setHome(Player player, String name) {
@@ -110,24 +113,26 @@ public class HomeService {
     }
 
     public void teleportToHome(Player player, HomeData home) {
-        String currentServer = getServerName();
+        teleportWarmupListener.startWarmup(player, () -> {
+            String currentServer = getServerName();
 
-        if (home.getServer().equals(currentServer)) {
-            World world = Bukkit.getWorld(home.getWorld());
-            if (world == null)
-                return;
-            Location loc = new Location(world, home.getX(), home.getY(), home.getZ(), home.getYaw(), home.getPitch());
-            player.getScheduler().run(plugin, task -> {
-                player.teleportAsync(loc);
-                player.sendMessage(MiniMessage.miniMessage().deserialize(
-                        messages.get().homeTeleported(),
-                        Placeholder.unparsed("home", home.getName())));
-            }, null);
-        } else {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
-            crossServerService.teleportCrossServer(player, home.getServer(), home.getWorld(), home.getX(), home.getY(),
-                    home.getZ(), home.getYaw(), home.getPitch(), false);
-        }
+            if (home.getServer().equals(currentServer)) {
+                World world = Bukkit.getWorld(home.getWorld());
+                if (world == null)
+                    return;
+                Location loc = new Location(world, home.getX(), home.getY(), home.getZ(), home.getYaw(), home.getPitch());
+                player.getScheduler().run(plugin, task -> {
+                    player.teleportAsync(loc);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(
+                            messages.get().homeTeleported(),
+                            Placeholder.unparsed("home", home.getName())));
+                }, null);
+            } else {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
+                crossServerService.teleportCrossServer(player, home.getServer(), home.getWorld(), home.getX(), home.getY(),
+                        home.getZ(), home.getYaw(), home.getPitch(), false);
+            }
+        });
     }
 
     public int getMaxHomes(Player player) {

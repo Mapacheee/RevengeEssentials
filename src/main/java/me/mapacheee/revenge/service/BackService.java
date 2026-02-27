@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import me.mapacheee.revenge.listener.TeleportWarmupListener;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -24,14 +25,16 @@ public class BackService {
     private final CrossServerService crossServerService;
     private final Container<Messages> messages;
     private final Plugin plugin;
+    private final TeleportWarmupListener teleportWarmupListener;
 
     @Inject
     public BackService(BackRepository backRepository, CrossServerService crossServerService,
-            Container<Messages> messages, Plugin plugin) {
+            Container<Messages> messages, Plugin plugin, TeleportWarmupListener teleportWarmupListener) {
         this.backRepository = backRepository;
         this.crossServerService = crossServerService;
         this.messages = messages;
         this.plugin = plugin;
+        this.teleportWarmupListener = teleportWarmupListener;
     }
 
     public void saveBackLocation(Player player) {
@@ -76,15 +79,20 @@ public class BackService {
                     return;
                 Location loc = new Location(world, back.getX(), back.getY(), back.getZ(), back.getYaw(),
                         back.getPitch());
+                
                 player.getScheduler().run(plugin, task -> {
-                    player.teleportAsync(loc);
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().backTeleported()));
+                    teleportWarmupListener.startWarmup(player, () -> {
+                        player.teleportAsync(loc);
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().backTeleported()));
+                    });
                 }, null);
             } else {
                 player.getScheduler().run(plugin, task -> {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().backCrossServer()));
-                    crossServerService.teleportCrossServer(player, back.getServer(), back.getWorld(), back.getX(),
-                            back.getY(), back.getZ(), back.getYaw(), back.getPitch(), false);
+                    teleportWarmupListener.startWarmup(player, () -> {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().backCrossServer()));
+                        crossServerService.teleportCrossServer(player, back.getServer(), back.getWorld(), back.getX(),
+                                back.getY(), back.getZ(), back.getYaw(), back.getPitch(), false);
+                    });
                 }, null);
             }
         });

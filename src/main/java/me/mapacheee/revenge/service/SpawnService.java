@@ -12,6 +12,7 @@ import me.mapacheee.revenge.data.SpawnData;
 import me.mapacheee.revenge.data.SpawnRepository;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import java.util.concurrent.TimeUnit;
+import me.mapacheee.revenge.listener.TeleportWarmupListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,13 +31,16 @@ public class SpawnService {
     private SpawnData cachedSpawn;
 
     private final CrossServerService crossServerService;
+    private final TeleportWarmupListener teleportWarmupListener;
 
     @Inject
     public SpawnService(SpawnRepository spawnRepository, CrossServerService crossServerService,
+            TeleportWarmupListener teleportWarmupListener,
             Container<Config> config, Container<Messages> messages,
             Plugin plugin) {
         this.spawnRepository = spawnRepository;
         this.crossServerService = crossServerService;
+        this.teleportWarmupListener = teleportWarmupListener;
         this.config = config;
         this.messages = messages;
         this.plugin = plugin;
@@ -73,23 +77,25 @@ public class SpawnService {
             return;
         }
 
-        if (cachedSpawn.getServer().equals(getServerName())) {
-            World world = Bukkit.getWorld(cachedSpawn.getWorld());
-            if (world == null)
-                return;
+        teleportWarmupListener.startWarmup(player, () -> {
+            if (cachedSpawn.getServer().equals(getServerName())) {
+                World world = Bukkit.getWorld(cachedSpawn.getWorld());
+                if (world == null)
+                    return;
 
-            Location loc = new Location(world, cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(),
-                    cachedSpawn.getYaw(), cachedSpawn.getPitch());
-            player.getScheduler().run(plugin, task -> {
-                player.teleportAsync(loc);
-                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().spawnTeleported()));
-            }, null);
-        } else {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
-            crossServerService.teleportCrossServer(player, cachedSpawn.getServer(), cachedSpawn.getWorld(),
-                    cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(), cachedSpawn.getYaw(),
-                    cachedSpawn.getPitch(), false);
-        }
+                Location loc = new Location(world, cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(),
+                        cachedSpawn.getYaw(), cachedSpawn.getPitch());
+                player.getScheduler().run(plugin, task -> {
+                    player.teleportAsync(loc);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().spawnTeleported()));
+                }, null);
+            } else {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
+                crossServerService.teleportCrossServer(player, cachedSpawn.getServer(), cachedSpawn.getWorld(),
+                        cachedSpawn.getX(), cachedSpawn.getY(), cachedSpawn.getZ(), cachedSpawn.getYaw(),
+                        cachedSpawn.getPitch(), false);
+            }
+        });
     }
 
     public boolean shouldForceSpawnOnJoin() {

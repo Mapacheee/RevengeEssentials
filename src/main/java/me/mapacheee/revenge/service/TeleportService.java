@@ -12,6 +12,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import me.mapacheee.revenge.listener.TeleportWarmupListener;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -28,16 +29,18 @@ public class TeleportService {
     private final Container<Config> config;
     private final Container<Messages> messages;
     private final Plugin plugin;
+    private final TeleportWarmupListener teleportWarmupListener;
     private final Map<UUID, TpaRequest> pendingRequests = new ConcurrentHashMap<>();
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
     @Inject
     public TeleportService(CrossServerService crossServerService, Container<Config> config,
-            Container<Messages> messages, Plugin plugin) {
+            Container<Messages> messages, Plugin plugin, TeleportWarmupListener teleportWarmupListener) {
         this.crossServerService = crossServerService;
         this.config = config;
         this.messages = messages;
         this.plugin = plugin;
+        this.teleportWarmupListener = teleportWarmupListener;
         startCleanupTask();
     }
 
@@ -97,17 +100,26 @@ public class TeleportService {
 
         Player sender = Bukkit.getPlayer(request.senderUuid());
         if (sender != null && sender.isOnline()) {
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(
-                    messages.get().tpaRequestAcceptedSender(),
-                    Placeholder.unparsed("player", target.getName())));
             if (request.tpaHere()) {
-                target.getScheduler().run(plugin, task -> target.teleportAsync(sender.getLocation()), null);
+                teleportWarmupListener.startWarmup(target, () -> {
+                    sender.sendMessage(MiniMessage.miniMessage().deserialize(
+                            messages.get().tpaRequestAcceptedSender(),
+                            Placeholder.unparsed("player", target.getName())));
+                    target.getScheduler().run(plugin, task -> target.teleportAsync(sender.getLocation()), null);
+                });
             } else {
-                sender.getScheduler().run(plugin, task -> sender.teleportAsync(target.getLocation()), null);
+                teleportWarmupListener.startWarmup(sender, () -> {
+                    sender.sendMessage(MiniMessage.miniMessage().deserialize(
+                            messages.get().tpaRequestAcceptedSender(),
+                            Placeholder.unparsed("player", target.getName())));
+                    sender.getScheduler().run(plugin, task -> sender.teleportAsync(target.getLocation()), null);
+                });
             }
         } else {
             if (request.tpaHere()) {
-                crossServerService.teleportCrossServer(target, request.senderServer(), request.reqWorld(), request.reqX(), request.reqY(), request.reqZ(), request.reqYaw(), request.reqPitch(), false);
+                teleportWarmupListener.startWarmup(target, () -> {
+                    crossServerService.teleportCrossServer(target, request.senderServer(), request.reqWorld(), request.reqX(), request.reqY(), request.reqZ(), request.reqYaw(), request.reqPitch(), false);
+                });
             }
             Location loc = target.getLocation();
             TpaResponseMessage response = new TpaResponseMessage(
@@ -143,10 +155,12 @@ public class TeleportService {
     }
 
     public void teleportDirect(Player sender, Player target) {
-        sender.getScheduler().run(plugin, task -> sender.teleportAsync(target.getLocation()), null);
-        sender.sendMessage(MiniMessage.miniMessage().deserialize(
-                messages.get().tpTeleported(),
-                Placeholder.unparsed("player", target.getName())));
+        teleportWarmupListener.startWarmup(sender, () -> {
+            sender.getScheduler().run(plugin, task -> sender.teleportAsync(target.getLocation()), null);
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(
+                    messages.get().tpTeleported(),
+                    Placeholder.unparsed("player", target.getName())));
+        });
     }
 
     public void handleIncomingTpaRequest(String senderUuid, String senderName, String targetName, boolean tpaHere,
@@ -176,8 +190,10 @@ public class TeleportService {
                     messages.get().tpaRequestAcceptedSender(),
                     Placeholder.unparsed("player", targetName)));
             if (!tpaHere) {
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
-                crossServerService.teleportCrossServer(sender, targetServer, targetWorld, x, y, z, yaw, pitch, false);
+                teleportWarmupListener.startWarmup(sender, () -> {
+                    sender.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
+                    crossServerService.teleportCrossServer(sender, targetServer, targetWorld, x, y, z, yaw, pitch, false);
+                });
             }
         } else {
             sender.sendMessage(MiniMessage.miniMessage().deserialize(
