@@ -2,6 +2,7 @@ package me.mapacheee.revenge.command;
 
 import com.google.inject.Inject;
 import com.thewinterframework.command.CommandComponent;
+import com.thewinterframework.configurate.Container;
 import me.mapacheee.revenge.api.RevengeCoreAPI;
 import me.mapacheee.revenge.channel.CrossClearMessage;
 import me.mapacheee.revenge.config.Messages;
@@ -34,11 +35,11 @@ import java.util.stream.Collectors;
 @CommandComponent
 public class UtilityCommands {
 
-    private final Messages messages;
+    private final Container<Messages> messages;
     private final PlayerDataService playerDataService;
 
     @Inject
-    public UtilityCommands(Messages messages, PlayerDataService playerDataService) {
+    public UtilityCommands(Container<Messages> messages, PlayerDataService playerDataService) {
         this.messages = messages;
         this.playerDataService = playerDataService;
     }
@@ -52,8 +53,8 @@ public class UtilityCommands {
     
     @Suggestions("enchantments")
     public List<String> enchantments(CommandContext<Source> context, CommandInput input) {
-        return io.papermc.paper.registry.RegistryAccess.registryAccess()
-                .getRegistry(io.papermc.paper.registry.RegistryKey.ENCHANTMENT)
+        return RegistryAccess.registryAccess()
+                .getRegistry(RegistryKey.ENCHANTMENT)
                 .stream()
                 .map(ench -> ench.getKey().getKey())
                 .collect(Collectors.toList());
@@ -81,7 +82,7 @@ public class UtilityCommands {
         Inventory workbench = Bukkit.createInventory(pTarget, InventoryType.WORKBENCH);
         pTarget.openInventory(workbench);
         if (source.source() instanceof Player && source.source().equals(pTarget)) {
-            pTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandCraftOpened()));
+            pTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandCraftOpened()));
         }
     }
 
@@ -108,7 +109,7 @@ public class UtilityCommands {
         pTarget.openInventory(anvil);
         
         if (source.source() instanceof Player && source.source().equals(pTarget)) {
-            pTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandAnvilOpened()));
+            pTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandAnvilOpened()));
         }
     }
 
@@ -123,7 +124,7 @@ public class UtilityCommands {
         if (target == null) {
             Player p = (Player) source.source();
             p.getInventory().clear();
-            p.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandClearSelf()));
+            p.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandClearSelf()));
             return;
         }
 
@@ -131,10 +132,10 @@ public class UtilityCommands {
         if (localTarget != null) {
             localTarget.getInventory().clear();
             if (source.source() instanceof Player) {
-                source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.commandClearOther(), 
+                source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandClearOther(), 
                     Placeholder.parsed("target", localTarget.getName())));
             }
-            localTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandClearOtherReceived()));
+            localTarget.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandClearOtherReceived()));
         } else {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:clear",
@@ -145,7 +146,7 @@ public class UtilityCommands {
             );
             
             if (source.source() instanceof Player) {
-                source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.commandClearOther(), 
+                source.source().sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandClearOther(), 
                     Placeholder.parsed("target", target)));
             }
         }
@@ -162,7 +163,7 @@ public class UtilityCommands {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item == null || item.getType() == Material.AIR) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandEnchantNoItem()));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandEnchantNoItem()));
             return;
         }
 
@@ -171,7 +172,7 @@ public class UtilityCommands {
                 .get(NamespacedKey.minecraft(enchantArg.toLowerCase()));
         
         if (enchantment == null) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandEnchantNotFound()));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandEnchantNotFound()));
             return;
         }
 
@@ -180,7 +181,7 @@ public class UtilityCommands {
             meta.addEnchant(enchantment, level, true);
             item.setItemMeta(meta);
             
-            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.commandEnchantSuccess(),
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().commandEnchantSuccess(),
                 Placeholder.parsed("enchant", enchantArg),
                 Placeholder.parsed("level", String.valueOf(level))
             ));
