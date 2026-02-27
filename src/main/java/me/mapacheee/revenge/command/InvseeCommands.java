@@ -9,15 +9,30 @@ import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
 import org.incendo.cloud.paper.util.sender.Source;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import java.util.List;
+import java.util.stream.Collectors;
+import me.mapacheee.revenge.service.PlayerDataService;
 
 @CommandComponent
 public class InvseeCommands {
 
     private final InvseeService invseeService;
+    private final PlayerDataService playerDataService;
 
     @Inject
-    public InvseeCommands(InvseeService invseeService) {
+    public InvseeCommands(InvseeService invseeService, PlayerDataService playerDataService) {
         this.invseeService = invseeService;
+        this.playerDataService = playerDataService;
+    }
+
+    @Suggestions("players")
+    public List<String> players(CommandContext<Source> context, CommandInput input) {
+        return playerDataService.getAllPlayerNames()
+                .stream()
+                .collect(Collectors.toList());
     }
 
     @Command("invsee <target>")
