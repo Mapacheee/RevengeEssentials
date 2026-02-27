@@ -327,8 +327,13 @@ public class KitEditGui implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
+        String layoutTitleStr = messages.get().kitEditGuiLayoutTitle();
+        if (layoutTitleStr == null) {
+            layoutTitleStr = "<gradient:#BF2A45:#E82A5D>Editor de Plantilla</gradient>";
+        }
+
         String plainTitle = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
-        String plainLayoutTitle = PlainTextComponentSerializer.plainText().serialize(MiniMessage.miniMessage().deserialize(messages.get().kitEditGuiLayoutTitle()));
+        String plainLayoutTitle = PlainTextComponentSerializer.plainText().serialize(MiniMessage.miniMessage().deserialize(layoutTitleStr));
         
         if (!plainTitle.equals(plainLayoutTitle)) return;
 
