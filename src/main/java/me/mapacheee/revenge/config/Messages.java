@@ -167,4 +167,12 @@ public record Messages(
         String warpsEmpty,
         String teleportWarmup,
         String teleportCancelledMovement,
-        String teleportCancelledDamage) {}
+        String teleportCancelledDamage,
+        String itemRenameSuccess,
+        String itemRenameClearSuccess,
+        String itemLoreAddSuccess,
+        String itemLoreRemoveSuccess,
+        String itemLoreSetSuccess,
+        String itemLoreClearSuccess,
+        String itemNoItem,
+        String itemLoreInvalidIndex) {}
