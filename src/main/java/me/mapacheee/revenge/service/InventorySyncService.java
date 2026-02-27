@@ -12,6 +12,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
+import me.mapacheee.revenge.api.RevengeCoreAPI;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.RBucket;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,6 +52,10 @@ public class InventorySyncService {
         if (syncingPlayers.contains(player.getUniqueId()))
             return;
         syncingPlayers.add(player.getUniqueId());
+        
+        RedissonClient rc = RevengeCoreAPI.get().getRedisService().client();
+        RBucket<String> lk = rc.getBucket("revenge:invlock:" + player.getUniqueId());
+        lk.set("locked", 15, TimeUnit.SECONDS);
 
         try {
             JsonObject data = new JsonObject();
@@ -73,13 +80,23 @@ public class InventorySyncService {
                     getPlayerDataService().setPlayerXp(player.getUniqueId(), player.getName(),
                             player.getTotalExperience());
                     syncingPlayers.remove(player.getUniqueId());
+                    RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+                    RBucket<String> lock = redisson.getBucket("revenge:invlock:" + player.getUniqueId());
+                    lock.delete();
                 });
             }).exceptionally(ex -> {
                 syncingPlayers.remove(player.getUniqueId());
+                RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+                RBucket<String> lock = redisson.getBucket("revenge:invlock:" + player.getUniqueId());
+                lock.delete();
                 return null;
             });
         } catch (Exception e) {
+            e.printStackTrace();
             syncingPlayers.remove(player.getUniqueId());
+            RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+            RBucket<String> lock = redisson.getBucket("revenge:invlock:" + player.getUniqueId());
+            lock.delete();
         }
     }
 
@@ -88,19 +105,29 @@ public class InventorySyncService {
             return;
         syncingPlayers.add(player.getUniqueId());
 
-        getPlayerDataService().getPlayerData(player.getUniqueId(), player.getName()).thenAccept(playerData -> {
-            String inventoryJson = playerData.getInventory();
-            if (inventoryJson == null || inventoryJson.equals("{}") || inventoryJson.isEmpty()) {
-                syncingPlayers.remove(player.getUniqueId());
-                return;
+        Bukkit.getAsyncScheduler().runNow(plugin, task -> {
+            RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
+            RBucket<String> lock = redisson.getBucket("revenge:invlock:" + player.getUniqueId());
+            int attempts = 0;
+            while (lock.isExists() && attempts < 20) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException ignored) {}
+                attempts++;
             }
+
+            getPlayerDataService().getPlayerData(player.getUniqueId(), player.getName()).thenAccept(playerData -> {
+                String inventoryJson = playerData.getInventory();
+                if (inventoryJson == null || inventoryJson.equals("{}") || inventoryJson.isEmpty()) {
+                    syncingPlayers.remove(player.getUniqueId());
+                    return;
+                }
 
             try {
                 JsonObject data = gson.fromJson(inventoryJson, JsonObject.class);
 
-                Bukkit.getAsyncScheduler().runDelayed(plugin, delayedTask -> {
-                    player.getScheduler().run(plugin, task -> {
-                        try {
+                player.getScheduler().run(plugin, schedulerTask -> {
+                    try {
                             if (data.has("inventory")) {
                                 ItemStack[] items = deserializeItems(data.get("inventory").getAsString());
                                 if (items != null)
@@ -184,10 +211,11 @@ public class InventorySyncService {
                             syncingPlayers.remove(player.getUniqueId());
                         }
                     }, () -> syncingPlayers.remove(player.getUniqueId()));
-                }, 500, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                syncingPlayers.remove(player.getUniqueId());
-            }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    syncingPlayers.remove(player.getUniqueId());
+                }
+            });
         });
     }
 
@@ -208,6 +236,7 @@ public class InventorySyncService {
             dataOutput.close();
             return Base64.getEncoder().encodeToString(outputStream.toByteArray());
         } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
     }
@@ -234,6 +263,7 @@ public class InventorySyncService {
             dataInput.close();
             return items;
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
