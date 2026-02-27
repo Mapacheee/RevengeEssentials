@@ -9,6 +9,7 @@ import me.mapacheee.revenge.data.PendingTeleportMessage;
 import me.mapacheee.revenge.data.PendingTeleportRepository;
 import com.mongodb.client.model.Filters;
 import org.bukkit.Bukkit;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -62,6 +63,19 @@ public class CrossServerService {
 
     public void teleportCrossServer(Player player, String server, String world, double x, double y, double z, float yaw,
             float pitch, boolean buildPortal) {
+
+        if (server.equalsIgnoreCase(getServerName())) {
+            World w = Bukkit.getWorld(world);
+            if (w == null) return;
+            Location loc = new Location(w, x, y, z, yaw, pitch);
+            player.getScheduler().run(plugin, task -> {
+                player.setMetadata("revenge_skip_back_save", new FixedMetadataValue(plugin, true));
+                player.teleportAsync(loc).thenAccept(result -> {
+                    player.removeMetadata("revenge_skip_back_save", plugin);
+                });
+            }, null);
+            return;
+        }
 
         Bukkit.getAsyncScheduler().runNow(plugin, task -> {
             PendingTeleportMessage msg = new PendingTeleportMessage(
