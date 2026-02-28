@@ -17,4 +17,5 @@ public record Config(
         int rtpRadius,
         int rtpCooldownSeconds,
         int autoSaveIntervalMinutes,
-        int teleportWarmupSeconds) {}
+        int teleportWarmupSeconds,
+        double startingBalance) {}

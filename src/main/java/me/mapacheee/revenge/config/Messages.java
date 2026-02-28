@@ -175,4 +175,15 @@ public record Messages(
         String itemLoreSetSuccess,
         String itemLoreClearSuccess,
         String itemNoItem,
-        String itemLoreInvalidIndex) {}
+        String itemLoreInvalidIndex,
+        String balanceSelf,
+        String balanceOther,
+        String balanceSet,
+        String balanceGive,
+        String balanceTake,
+        String paySent,
+        String payReceived,
+        String notEnoughMoney,
+        String invalidAmount,
+        String playerNotFound
+) {}

@@ -42,7 +42,7 @@ public class WarpService {
         warpRepository.findAll().forEach(warp -> {
             cachedWarps.put(warp.getName().toLowerCase(), warp);
         });
-        plugin.getLogger().info("Warps globales cargados en caché: " + cachedWarps.size());
+        plugin.getSLF4JLogger().info("Warps globales cargados en caché: {}", cachedWarps.size());
 
         RevengeCoreAPI.get().getChannelService().subscribe("revenge:warp_update", CrossWarpUpdateMessage.class, msg -> {
             if (msg.serverName.equals(RevengeCoreAPI.get().getServerName())) return;
