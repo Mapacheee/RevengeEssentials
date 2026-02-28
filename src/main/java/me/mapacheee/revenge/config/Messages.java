@@ -185,5 +185,19 @@ public record Messages(
         String payReceived,
         String notEnoughMoney,
         String invalidAmount,
-        String playerNotFound
+        String playerNotFound,
+        String ahPriceInvalid,
+        String ahNoItemInHand,
+        String ahSuccessListing,
+        String ahGuiTitle,
+        String ahItemSeller,
+        String ahItemPrice,
+        String ahItemClickWithdraw,
+        String ahItemClickBuy,
+        String ahPrevPage,
+        String ahNextPage,
+        String ahWithdrawn,
+        String ahPurchaseSuccess,
+        String ahPurchaseFail,
+        String ahListingError
 ) {}
