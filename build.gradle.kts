@@ -2,6 +2,7 @@ plugins {
     java
     `java-library`
     id("com.gradleup.shadow") version "9.2.2"
+    `maven-publish`
 }
 
 java {
@@ -34,6 +35,14 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("me.mapacheee.revenge:RevengeCore:1.0.0-SNAPSHOT")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
 }
 
 tasks {
