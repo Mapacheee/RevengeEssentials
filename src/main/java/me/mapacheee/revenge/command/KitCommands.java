@@ -88,7 +88,7 @@ public class KitCommands {
             return;
         }
 
-        if (target.equalsIgnoreCase("@a")) {
+        if (target.equalsIgnoreCase("all")) {
             for (int i = 0; i < amount; i++) {
                 RevengeCoreAPI.get().getChannelService().publish(
                     "revenge:kit_give_all",

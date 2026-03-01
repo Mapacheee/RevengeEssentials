@@ -18,4 +18,5 @@ public record Config(
         int rtpCooldownSeconds,
         int autoSaveIntervalMinutes,
         int teleportWarmupSeconds,
-        double startingBalance) {}
+        double startingBalance,
+        int tradeRequestTimeoutSeconds) {}

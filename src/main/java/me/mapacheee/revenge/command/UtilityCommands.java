@@ -13,6 +13,7 @@ import me.mapacheee.revenge.channel.CrossFlyAllMessage;
 import me.mapacheee.revenge.channel.CrossSpeedAllMessage;
 import me.mapacheee.revenge.channel.CrossGamemodeAllMessage;
 import me.mapacheee.revenge.channel.CrossHealAllMessage;
+import me.mapacheee.revenge.channel.CrossFeedAllMessage;
 import me.mapacheee.revenge.service.PlayerStateService;
 import me.mapacheee.revenge.service.FlyService;
 import me.mapacheee.revenge.service.SpeedService;
@@ -236,7 +237,7 @@ public class UtilityCommands {
             return;
         }
 
-        if (target != null && target.equalsIgnoreCase("@a")) {
+        if (target != null && target.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:godmode_all",
                 new CrossGodModeAllMessage(
@@ -300,7 +301,7 @@ public class UtilityCommands {
             speedType = type.equalsIgnoreCase("walk") ? SpeedService.SpeedType.WALK : SpeedService.SpeedType.FLY;
         }
 
-        if (target.equalsIgnoreCase("@a")) {
+        if (target.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:speed_all",
                 new CrossSpeedAllMessage(
@@ -338,7 +339,7 @@ public class UtilityCommands {
     @Command("fly <target>")
     @Permission("revenge.fly.others")
     public void flyOther(Source source, @Argument(value = "target", suggestions = "players") String target) {
-        if (target.equalsIgnoreCase("@a")) {
+        if (target.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:fly_all",
                 new CrossFlyAllMessage(
@@ -361,7 +362,7 @@ public class UtilityCommands {
             return;
         }
 
-        if (target != null && target.equalsIgnoreCase("@a")) {
+        if (target != null && target.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:heal_all",
                 new CrossHealAllMessage(
@@ -378,6 +379,33 @@ public class UtilityCommands {
 
         String effectiveTarget = target != null ? target : ((Player) source.source()).getName();
         playerStateService.healPlayer(source, effectiveTarget);
+    }
+
+    @Command("feed [target]")
+    @Permission("revenge.feed")
+    public void feed(Source source, @Nullable @Argument(value = "target", suggestions = "players") String target) {
+        if (target == null && !(source.source() instanceof Player)) {
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize("<red>Se debe especificar un jugador en consola.</red>"));
+            return;
+        }
+
+        if (target != null && target.equalsIgnoreCase("all")) {
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:feed_all",
+                new CrossFeedAllMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    source.source() instanceof Player ? ((Player) source.source()).getName() : "Console"
+                )
+            );
+
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize(
+                messages.get().feedAll()
+            ));
+            return;
+        }
+
+        String effectiveTarget = target != null ? target : ((Player) source.source()).getName();
+        playerStateService.feedPlayer(source, effectiveTarget);
     }
 
     @Command("spawn")
@@ -434,7 +462,7 @@ public class UtilityCommands {
             return;
         }
 
-        if (targetName != null && targetName.equalsIgnoreCase("@a")) {
+        if (targetName != null && targetName.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:gamemode_all",
                 new CrossGamemodeAllMessage(

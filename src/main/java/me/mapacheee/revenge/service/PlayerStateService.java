@@ -12,6 +12,8 @@ import me.mapacheee.revenge.channel.CrossHealMessage;
 import me.mapacheee.revenge.channel.CrossHealAllMessage;
 import me.mapacheee.revenge.channel.CrossGodModeAllMessage;
 import me.mapacheee.revenge.channel.CrossGamemodeAllMessage;
+import me.mapacheee.revenge.channel.CrossFeedMessage;
+import me.mapacheee.revenge.channel.CrossFeedAllMessage;
 import me.mapacheee.revenge.channel.CrossFeedbackMessage;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -85,6 +87,19 @@ public class PlayerStateService {
             Player targetPlayer = Bukkit.getPlayerExact(msg.getTargetName());
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 applyHealLocal(targetPlayer, msg.getSenderName());
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:feed", CrossFeedMessage.class, msg -> {
+            Player targetPlayer2 = Bukkit.getPlayerExact(msg.getTargetName());
+            if (targetPlayer2 != null && targetPlayer2.isOnline()) {
+                applyFeedLocal(targetPlayer2, msg.getSenderName());
+            }
+        }, plugin.getSLF4JLogger());
+
+        channelService.subscribe("revenge:feed_all", CrossFeedAllMessage.class, msg -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                applyFeedLocal(p, msg.senderName);
             }
         }, plugin.getSLF4JLogger());
     }
@@ -230,6 +245,49 @@ public class PlayerStateService {
             } else if (!senderName.equals("Console") && !senderName.equals(targetPlayer.getName())) {
                 String feedbackStr = MiniMessage.miniMessage().serialize(
                     MiniMessage.miniMessage().deserialize(messages.get().healOther(),
+                        Placeholder.unparsed("player", targetPlayer.getName()))
+                );
+                channelService.publish("revenge:feedback", new CrossFeedbackMessage(senderName, feedbackStr));
+            }
+        }, null);
+    }
+
+    public void feedPlayer(Source sender, String targetName) {
+        Player targetPlayer = Bukkit.getPlayerExact(targetName);
+        String senderName = sender.source() instanceof Player p ? p.getName() : "Console";
+
+        if (targetPlayer != null && targetPlayer.isOnline()) {
+            applyFeedLocal(targetPlayer, senderName);
+        } else {
+            playerDataService.getUUIDFromName(targetName).thenAccept(targetUuid -> {
+                if (targetUuid == null) {
+                    if (sender.source() instanceof Player p) {
+                        p.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().playerNotOnline(),
+                                Placeholder.unparsed("player", targetName)));
+                    } else {
+                        sender.source().sendMessage("Player not found.");
+                    }
+                    return;
+                }
+                channelService.publish("revenge:feed", new CrossFeedMessage(senderName, targetName));
+            });
+        }
+    }
+
+    private void applyFeedLocal(Player targetPlayer, String senderName) {
+        targetPlayer.getScheduler().run(plugin, task -> {
+            targetPlayer.setFoodLevel(20);
+            targetPlayer.setSaturation(20f);
+
+            targetPlayer.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().feedSelf()));
+
+            Player senderPlayer = Bukkit.getPlayerExact(senderName);
+            if (senderPlayer != null && senderPlayer.isOnline() && !senderPlayer.equals(targetPlayer)) {
+                senderPlayer.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().feedOther(),
+                        Placeholder.unparsed("player", targetPlayer.getName())));
+            } else if (!senderName.equals("Console") && !senderName.equals(targetPlayer.getName())) {
+                String feedbackStr = MiniMessage.miniMessage().serialize(
+                    MiniMessage.miniMessage().deserialize(messages.get().feedOther(),
                         Placeholder.unparsed("player", targetPlayer.getName()))
                 );
                 channelService.publish("revenge:feedback", new CrossFeedbackMessage(senderName, feedbackStr));

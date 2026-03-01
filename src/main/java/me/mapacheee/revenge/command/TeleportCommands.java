@@ -100,7 +100,7 @@ public class TeleportCommands {
             return;
         }
 
-        if (target.equalsIgnoreCase("@a")) {
+        if (target.equalsIgnoreCase("all")) {
             RevengeCoreAPI.get().getChannelService().publish(
                 "revenge:tphere_all",
                 new CrossTeleportAllMessage(
