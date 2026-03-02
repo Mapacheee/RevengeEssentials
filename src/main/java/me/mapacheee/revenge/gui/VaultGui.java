@@ -22,20 +22,30 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
-
+import org.bukkit.inventory.InventoryHolder;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @ListenerComponent
 public class VaultGui implements Listener {
 
+    private static class VaultHolder implements InventoryHolder {
+        private final int page;
+        private final int rows;
+        public VaultHolder(int page, int rows) { this.page = page; this.rows = rows; }
+        public int getPage() { return page; }
+        public int getRows() { return rows; }
+        @Override public Inventory getInventory() { return null; }
+    }
+
     private final VaultService vaultService;
     private final Container<Messages> messages;
     private final Plugin plugin;
 
-    private final Map<UUID, Integer> openVaultPages = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> openVaultRows = new ConcurrentHashMap<>();
+    private final Map<UUID, Inventory> openVaultInventories = new ConcurrentHashMap<>();
+    private final Set<UUID> navigating = ConcurrentHashMap.newKeySet();
 
     @Inject
     public VaultGui(VaultService vaultService, Container<Messages> messages, Plugin plugin) {
@@ -66,7 +76,7 @@ public class VaultGui implements Listener {
                     Placeholder.parsed("page", String.valueOf(finalPage))
                 );
 
-                Inventory inv = Bukkit.createInventory(null, totalSlots, title);
+                Inventory inv = Bukkit.createInventory(new VaultHolder(finalPage, maxRows), totalSlots, title);
 
                 int itemSlots = maxRows * 9;
                 if (vaultData != null && vaultData.getContentsBase64() != null) {
@@ -107,9 +117,7 @@ public class VaultGui implements Listener {
                     inv.setItem(navRowStart + 8, nextBtn);
                 }
 
-                openVaultPages.put(player.getUniqueId(), finalPage);
-                openVaultRows.put(player.getUniqueId(), maxRows);
-
+                openVaultInventories.put(player.getUniqueId(), inv);
                 player.openInventory(inv);
             }, null);
         });
@@ -118,34 +126,58 @@ public class VaultGui implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!openVaultPages.containsKey(player.getUniqueId())) return;
+        if (!(event.getInventory().getHolder() instanceof VaultHolder holder)) return;
 
-        int maxRows = openVaultRows.getOrDefault(player.getUniqueId(), 1);
+        Inventory topInv = event.getView().getTopInventory();
+        Inventory clickedInv = event.getClickedInventory();
+        if (clickedInv == null) return;
+
+        int maxRows = holder.getRows();
         int navRowStart = maxRows * 9;
 
-        if (event.getRawSlot() >= navRowStart && event.getRawSlot() < (maxRows + 1) * 9) {
-            event.setCancelled(true);
+        if (clickedInv.equals(topInv)) {
+            if (event.getSlot() >= navRowStart) {
+                event.setCancelled(true);
+                handleNavigation(player, event.getCurrentItem(), holder);
+            }
+        } else if (event.isShiftClick()) {
+            if (isVaultFull(topInv, navRowStart)) {
+                event.setCancelled(true);
+            }
+        }
+    }
 
-            ItemStack clicked = event.getCurrentItem();
-            if (clicked != null && clicked.hasItemMeta()) {
-                NamespacedKey pageKey = new NamespacedKey(plugin, "vault_page");
-                Integer targetPage = clicked.getItemMeta().getPersistentDataContainer().get(pageKey, PersistentDataType.INTEGER);
-                if (targetPage != null) {
-                    int currentPage = openVaultPages.getOrDefault(player.getUniqueId(), 1);
-                    Inventory currentInv = event.getInventory();
 
-                    Inventory tempInv = Bukkit.createInventory(null, maxRows * 9);
-                    for (int i = 0; i < maxRows * 9; i++) {
-                        ItemStack item = currentInv.getItem(i);
-                        if (item != null) {
-                            tempInv.setItem(i, item);
-                        }
+    private boolean isVaultFull(Inventory inv, int itemSlots) {
+        for (int i = 0; i < itemSlots; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item == null || item.getType() == Material.AIR) return false;
+        }
+        return true;
+    }
+
+    private void handleNavigation(Player player, ItemStack clicked, VaultHolder holder) {
+        if (clicked != null && clicked.hasItemMeta()) {
+            NamespacedKey pageKey = new NamespacedKey(plugin, "vault_page");
+            Integer targetPage = clicked.getItemMeta().getPersistentDataContainer().get(pageKey, PersistentDataType.INTEGER);
+            if (targetPage != null) {
+                int currentPage = holder.getPage();
+                int maxRows = holder.getRows();
+                Inventory vaultInv = openVaultInventories.get(player.getUniqueId());
+                if (vaultInv == null) return;
+
+                Inventory tempInv = Bukkit.createInventory(null, maxRows * 9);
+                for (int i = 0; i < maxRows * 9; i++) {
+                    ItemStack item = vaultInv.getItem(i);
+                    if (item != null) {
+                        tempInv.setItem(i, item);
                     }
-
-                    vaultService.saveVault(player, currentPage, tempInv).thenRun(() -> {
-                        open(player, targetPage);
-                    });
                 }
+
+                navigating.add(player.getUniqueId());
+                vaultService.saveVault(player, currentPage, tempInv).thenRun(() -> {
+                    open(player, targetPage);
+                });
             }
         }
     }
@@ -153,11 +185,15 @@ public class VaultGui implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
+        if (!(event.getInventory().getHolder() instanceof VaultHolder holder)) return;
 
-        Integer currentPage = openVaultPages.remove(player.getUniqueId());
-        Integer maxRows = openVaultRows.remove(player.getUniqueId());
+        UUID uuid = player.getUniqueId();
+        if (navigating.remove(uuid)) return;
 
-        if (currentPage == null || maxRows == null) return;
+        openVaultInventories.remove(uuid);
+
+        int currentPage = holder.getPage();
+        int maxRows = holder.getRows();
 
         Inventory closedInv = event.getInventory();
         int itemSlots = maxRows * 9;

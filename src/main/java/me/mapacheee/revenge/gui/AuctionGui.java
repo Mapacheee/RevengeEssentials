@@ -32,6 +32,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ListenerComponent
 public class AuctionGui implements Listener {
 
+    private static class AuctionHolder implements org.bukkit.inventory.InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
+
     private final AuctionService auctionService;
     private final InventorySyncService inventorySyncService;
     private final Container<Messages> messages;
@@ -61,7 +65,7 @@ public class AuctionGui implements Listener {
                     messages.get().ahGuiTitle(),
                     Placeholder.parsed("page", String.valueOf(page + 1))
             );
-            Inventory inv = Bukkit.createInventory(null, 54, title);
+            Inventory inv = Bukkit.createInventory(new AuctionHolder(), 54, title);
 
             ItemStack fillDef = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
             ItemMeta fillMeta = fillDef.getItemMeta();
@@ -148,51 +152,51 @@ public class AuctionGui implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (event.getView().title().toString().contains("Subastas") || event.getView().title().toString().contains("Página")) {
-            event.setCancelled(true);
+        if (!(event.getInventory().getHolder() instanceof AuctionHolder)) return;
 
-            if (!(event.getWhoClicked() instanceof Player player)) return;
-            ItemStack clicked = event.getCurrentItem();
-            if (clicked == null || !clicked.hasItemMeta()) return;
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
-            NamespacedKey pageKey = new NamespacedKey(plugin, "ah_page");
-            if (clicked.getItemMeta().getPersistentDataContainer().has(pageKey, PersistentDataType.INTEGER)) {
-                int targetPage = clicked.getItemMeta().getPersistentDataContainer().get(pageKey, PersistentDataType.INTEGER);
-                open(player, targetPage);
-                return;
-            }
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || !clicked.hasItemMeta()) return;
 
-            NamespacedKey itemKey = new NamespacedKey(plugin, "ah_item_id");
-            if (clicked.getItemMeta().getPersistentDataContainer().has(itemKey, PersistentDataType.STRING)) {
-                String auctionId = clicked.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
-                
-                auctionService.getAuction(auctionId).ifPresent(auction -> {
-                    player.closeInventory();
-                    if (auction.getSellerUuid().equals(player.getUniqueId())) {
-                        auctionService.cancelListing(player, auctionId).thenAccept(success -> {
-                            if (success) {
-                                ItemStack[] des = inventorySyncService.deserializeItems(auction.getItemBase64());
-                                if (des != null && des.length > 0 && des[0] != null) {
-                                    player.getInventory().addItem(des[0]);
-                                }
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahWithdrawn()));
+        NamespacedKey pageKey = new NamespacedKey(plugin, "ah_page");
+        if (clicked.getItemMeta().getPersistentDataContainer().has(pageKey, PersistentDataType.INTEGER)) {
+            int targetPage = clicked.getItemMeta().getPersistentDataContainer().get(pageKey, PersistentDataType.INTEGER);
+            open(player, targetPage);
+            return;
+        }
+
+        NamespacedKey itemKey = new NamespacedKey(plugin, "ah_item_id");
+        if (clicked.getItemMeta().getPersistentDataContainer().has(itemKey, PersistentDataType.STRING)) {
+            String auctionId = clicked.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
+            
+            auctionService.getAuction(auctionId).ifPresent(auction -> {
+                player.closeInventory();
+                if (auction.getSellerUuid().equals(player.getUniqueId())) {
+                    auctionService.cancelListing(player, auctionId).thenAccept(success -> {
+                        if (success) {
+                            ItemStack[] des = inventorySyncService.deserializeItems(auction.getItemBase64());
+                            if (des != null && des.length > 0 && des[0] != null) {
+                                player.getInventory().addItem(des[0]);
                             }
-                        });
-                    } else {
-                        auctionService.buyItem(player, auctionId).thenAccept(success -> {
-                            if (success) {
-                                ItemStack[] des = inventorySyncService.deserializeItems(auction.getItemBase64());
-                                if (des != null && des.length > 0 && des[0] != null) {
-                                    player.getInventory().addItem(des[0]);
-                                }
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahPurchaseSuccess(), Placeholder.parsed("price", String.valueOf(auction.getPrice()))));
-                            } else {
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahPurchaseFail()));
+                            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahWithdrawn()));
+                        }
+                    });
+                } else {
+                    auctionService.buyItem(player, auctionId).thenAccept(success -> {
+                        if (success) {
+                            ItemStack[] des = inventorySyncService.deserializeItems(auction.getItemBase64());
+                            if (des != null && des.length > 0 && des[0] != null) {
+                                player.getInventory().addItem(des[0]);
                             }
-                        });
-                    }
-                });
-            }
+                            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahPurchaseSuccess(), Placeholder.parsed("price", String.valueOf(auction.getPrice()))));
+                        } else {
+                            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().ahPurchaseFail()));
+                        }
+                    });
+                }
+            });
         }
     }
 }
