@@ -27,7 +27,7 @@ public class VaultService {
     }
 
     public int getMaxRows(Player player) {
-        for (int i = 6; i >= 2; i--) {
+        for (int i = 5; i >= 2; i--) {
             if (player.hasPermission("revenge.vault.rows." + i)) {
                 return i;
             }

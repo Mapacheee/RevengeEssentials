@@ -6,7 +6,6 @@ import com.thewinterframework.configurate.Container;
 import me.mapacheee.revenge.config.Messages;
 import me.mapacheee.revenge.service.TradeService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
@@ -33,8 +32,7 @@ public class TradeCommands {
 
     @Suggestions("trade_players")
     public List<String> tradePlayers(CommandContext<Source> context, CommandInput input) {
-        return Bukkit.getOnlinePlayers().stream()
-            .map(Player::getName)
+        return tradeService.getPlayerDataService().getAllPlayerNames().stream()
             .collect(Collectors.toList());
     }
 
@@ -43,14 +41,15 @@ public class TradeCommands {
     public void trade(Source source, @Argument(value = "target", suggestions = "trade_players") String target) {
         if (!(source.source() instanceof Player player)) return;
 
-        Player targetPlayer = Bukkit.getPlayerExact(target);
-        if (targetPlayer == null || !targetPlayer.isOnline()) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(
-                messages.get().playerNotFound()));
-            return;
-        }
+        tradeService.getPlayerDataService().getUUIDFromName(target).thenAccept(uuid -> {
+            if (uuid == null) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(
+                    messages.get().playerNotFound()));
+                return;
+            }
 
-        tradeService.requestTrade(player, targetPlayer);
+            tradeService.requestTrade(player, uuid, target);
+        });
     }
 
     @Command("tradeaccept")

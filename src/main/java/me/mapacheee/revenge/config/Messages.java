@@ -226,5 +226,7 @@ public record Messages(
         String tradeMoneyOffer,
         String tradeMoneyClick,
         String tradeConfirmed,
-        String tradeInvalidAmount
+        String tradeInvalidAmount,
+        String tradeMoneyTitle,
+        String tradeMoneySubtitle
 ) {}
