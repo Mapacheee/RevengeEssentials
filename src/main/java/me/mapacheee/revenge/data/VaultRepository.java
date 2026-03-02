@@ -3,6 +3,8 @@ package me.mapacheee.revenge.data;
 import com.google.gson.Gson;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
 import com.thewinterframework.service.annotation.Service;
 import me.mapacheee.revenge.api.RevengeCoreAPI;
 import org.bson.Document;
@@ -36,6 +38,18 @@ public class VaultRepository {
             results.add(gson.fromJson(doc.toJson(), VaultData.class));
         }
         return results;
+    }
+
+    public void upsert(String uuid, int page, String contentsBase64) {
+        getCollection().updateOne(
+            Filters.and(Filters.eq("uuid", uuid), Filters.eq("page", page)),
+            Updates.combine(
+                Updates.set("uuid", uuid),
+                Updates.set("page", page),
+                Updates.set("contentsBase64", contentsBase64)
+            ),
+            new UpdateOptions().upsert(true)
+        );
     }
 
     public void save(VaultData model) {

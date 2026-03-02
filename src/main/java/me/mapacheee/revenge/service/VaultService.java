@@ -53,24 +53,11 @@ public class VaultService {
         });
     }
 
-    public CompletableFuture<Void> saveVault(Player player, int page, Inventory inventory) {
+    public CompletableFuture<Void> saveVaultFromEncoded(String uuid, int page, String encoded) {
         return CompletableFuture.runAsync(() -> {
-            String uuid = player.getUniqueId().toString();
-            VaultData existing = vaultRepository.findOne(
-                Filters.and(Filters.eq("uuid", uuid), Filters.eq("page", page))
-            );
-
-            String encoded = serializeContents(inventory);
-
-            if (existing != null) {
-                existing.setContentsBase64(encoded);
-                vaultRepository.save(existing);
-            } else {
-                VaultData newVault = new VaultData(uuid, page, encoded);
-                vaultRepository.save(newVault);
-            }
+            vaultRepository.upsert(uuid, page, encoded);
         });
-    }
+    }   
 
     public String serializeContents(Inventory inventory) {
         try {
@@ -91,6 +78,8 @@ public class VaultService {
             dataOutput.close();
             return Base64.getEncoder().encodeToString(outputStream.toByteArray());
         } catch (Exception e) {
+            System.err.println("[Vault] Error serializing vault contents: " + e.getMessage());
+            e.printStackTrace();
             return "";
         }
     }

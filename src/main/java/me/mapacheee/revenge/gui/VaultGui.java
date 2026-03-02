@@ -175,8 +175,13 @@ public class VaultGui implements Listener {
                 }
 
                 navigating.add(player.getUniqueId());
-                vaultService.saveVault(player, currentPage, tempInv).thenRun(() -> {
-                    open(player, targetPage);
+                
+                String encoded = vaultService.serializeContents(tempInv);
+                
+                plugin.getServer().getAsyncScheduler().runNow(plugin, scheduledTask -> {
+                    vaultService.saveVaultFromEncoded(player.getUniqueId().toString(), currentPage, encoded).thenRun(() -> {
+                        open(player, targetPage);
+                    });
                 });
             }
         }
@@ -205,6 +210,9 @@ public class VaultGui implements Listener {
             }
         }
 
-        vaultService.saveVault(player, currentPage, tempInv);
+        String encoded = vaultService.serializeContents(tempInv);
+        plugin.getServer().getAsyncScheduler().runNow(plugin, scheduledTask -> {
+            vaultService.saveVaultFromEncoded(player.getUniqueId().toString(), currentPage, encoded);
+        });
     }
 }

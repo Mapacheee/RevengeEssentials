@@ -19,4 +19,5 @@ public record Config(
         int autoSaveIntervalMinutes,
         int teleportWarmupSeconds,
         double startingBalance,
-        int tradeRequestTimeoutSeconds) {}
+        int tradeRequestTimeoutSeconds
+) {}
