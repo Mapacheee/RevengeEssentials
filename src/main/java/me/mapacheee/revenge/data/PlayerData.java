@@ -22,6 +22,8 @@ public class PlayerData implements Identifiable<ObjectId> {
     private Boolean queuedHeal;
     private Map<String, Long> kitCooldowns;
     private Map<String, Integer> pendingKits;
+    private int kills;
+    private int deaths;
     private List<String> offlineMessages;
 
     public PlayerData() {
@@ -35,6 +37,8 @@ public class PlayerData implements Identifiable<ObjectId> {
         this.inventory = "{}";
         this.kitCooldowns = new ConcurrentHashMap<>();
         this.pendingKits = new ConcurrentHashMap<>();
+        this.deaths = 0;
+        this.kills = 0;
         this.offlineMessages = new ArrayList<>();
     }
 
@@ -137,5 +141,21 @@ public class PlayerData implements Identifiable<ObjectId> {
 
     public void setOfflineMessages(List<String> offlineMessages) {
         this.offlineMessages = offlineMessages;
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public void setKills(int kills) {
+        this.kills = kills;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public void setDeaths(int deaths) {
+        this.deaths = deaths;
     }
 }

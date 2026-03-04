@@ -9,6 +9,7 @@ import me.mapacheee.revenge.service.DeathService;
 import me.mapacheee.revenge.service.HomeService;
 import me.mapacheee.revenge.service.SpawnService;
 import me.mapacheee.revenge.service.CrossServerService;
+import me.mapacheee.revenge.service.PlayerDataService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -34,16 +35,18 @@ public class DeathListener implements Listener {
     private final HomeService homeService;
     private final SpawnService spawnService;
     private final CrossServerService crossServerService;
+    private final PlayerDataService playerDataService;
     private final Plugin plugin;
 
     @Inject
     public DeathListener(Container<Messages> messages, DeathService deathService, HomeService homeService,
-            SpawnService spawnService, CrossServerService crossServerService, Plugin plugin) {
+            SpawnService spawnService, CrossServerService crossServerService, PlayerDataService playerDataService, Plugin plugin) {
         this.messages = messages;
         this.deathService = deathService;
         this.homeService = homeService;
         this.spawnService = spawnService;
         this.crossServerService = crossServerService;
+        this.playerDataService = playerDataService;
         this.plugin = plugin;
     }
 
@@ -52,6 +55,13 @@ public class DeathListener implements Listener {
         event.deathMessage(null);
         Player player = event.getEntity();
         String messageType = messages.get().crossServerDeathOther();
+
+        playerDataService.incrementPlayerDeaths(player.getUniqueId(), player.getName());
+
+        Player killer = player.getKiller();
+        if (killer != null) {
+            playerDataService.incrementPlayerKills(killer.getUniqueId(), killer.getName());
+        }
 
         EntityDamageEvent damageEvent = player.getLastDamageCause();
         if (damageEvent != null) {
