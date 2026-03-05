@@ -11,6 +11,7 @@ import me.mapacheee.revenge.config.Messages;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import me.mapacheee.revenge.channel.CrossTeleportResponseMessage;
 import org.bukkit.Location;
 import me.mapacheee.revenge.listener.TeleportWarmupListener;
 import org.bukkit.entity.Player;
@@ -238,6 +239,50 @@ public class TeleportService {
             return RevengeCoreAPI.get().getServerName();
         } catch (Exception e) {
             return "unknown";
+        }
+    }
+
+    public void handleCrossTeleportRequest(String senderName, String targetName, String senderServer) {
+        Player target = Bukkit.getPlayerExact(targetName);
+        if (target != null && target.isOnline()) {
+            Location loc = target.getLocation();
+            CrossTeleportResponseMessage response = new CrossTeleportResponseMessage(
+                    getServerName(), senderName, target.getName(), true, getServerName(),
+                    loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch()
+            );
+            getChannelService().publish("revenge:tp_res", response);
+        }
+    }
+
+    public void handleCrossTeleportResponse(String senderName, String targetName, boolean found, String targetServer, String targetWorld, double x, double y, double z, float yaw, float pitch) {
+        Player sender = Bukkit.getPlayerExact(senderName);
+        if (sender != null && sender.isOnline()) {
+            if (found) {
+                teleportWarmupListener.startWarmup(sender, () -> {
+                    sender.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
+                    crossServerService.teleportCrossServer(sender, targetServer, targetWorld, x, y, z, yaw, pitch, true);
+                });
+            } else {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(
+                        messages.get().tpPlayerNotFound(),
+                        Placeholder.unparsed("player", targetName)
+                ));
+            }
+        }
+    }
+
+    public void handleCrossTeleportHere(String targetName, String destinationServer, String worldName, double x, double y, double z, float yaw, float pitch) {
+        Player target = Bukkit.getPlayerExact(targetName);
+        if (target != null && target.isOnline()) {
+            crossServerService.teleportCrossServer(target, destinationServer, worldName, x, y, z, yaw, pitch, true);
+        }
+    }
+
+    public void handleCrossTeleportAll(String excludedPlayerName, String destinationServer, String worldName, double x, double y, double z, float yaw, float pitch) {
+        for (Player target : Bukkit.getOnlinePlayers()) {
+            if (!target.getName().equalsIgnoreCase(excludedPlayerName)) {
+                crossServerService.teleportCrossServer(target, destinationServer, worldName, x, y, z, yaw, pitch, true);
+            }
         }
     }
 

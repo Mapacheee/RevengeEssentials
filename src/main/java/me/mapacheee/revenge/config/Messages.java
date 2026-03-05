@@ -228,5 +228,15 @@ public record Messages(
         String tradeConfirmed,
         String tradeInvalidAmount,
         String tradeMoneyTitle,
-        String tradeMoneySubtitle
+        String tradeMoneySubtitle,
+        String broadcast,
+        String maintenanceStart,
+        String maintenanceCountdown,
+        String maintenanceKick,
+        String maintenanceInvalidTime,
+        String broadcastUsage,
+        String sitNotOnGround,
+        String layNotOnGround,
+        String whoisNotFound,
+        String whoisFormat
 ) {}

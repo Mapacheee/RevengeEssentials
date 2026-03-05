@@ -21,6 +21,7 @@ import me.mapacheee.revenge.service.BackService;
 import me.mapacheee.revenge.service.RtpService;
 import me.mapacheee.revenge.service.SpawnService;
 import me.mapacheee.revenge.service.PlayerDataService;
+import me.mapacheee.revenge.listener.SitListener;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
 import org.incendo.cloud.annotations.Argument;
@@ -60,6 +61,7 @@ public class UtilityCommands {
     private final BackService backService;
     private final RtpService rtpService;
     private final SpawnService spawnService;
+    private final SitListener sitListener;
     private final Plugin plugin;
 
     @Inject
@@ -72,6 +74,7 @@ public class UtilityCommands {
             BackService backService,
             RtpService rtpService,
             SpawnService spawnService,
+            SitListener sitListener,
             Plugin plugin
     ) {
         this.messages = messages;
@@ -82,8 +85,10 @@ public class UtilityCommands {
         this.backService = backService;
         this.rtpService = rtpService;
         this.spawnService = spawnService;
+        this.sitListener = sitListener;
         this.plugin = plugin;
     }
+
 
     @Suggestions("players")
     public List<String> players(CommandContext<Source> context, CommandInput input) {
@@ -617,4 +622,19 @@ public class UtilityCommands {
             player.openInventory(pTarget.getEnderChest());
         }
     }
+
+    @Command("sit")
+    @Permission("revenge.sit")
+    public void sit(Source source) {
+        if (!(source.source() instanceof Player player)) return;
+        sitListener.sit(player);
+    }
+
+    @Command("lay")
+    @Permission("revenge.lay")
+    public void lay(Source source) {
+        if (!(source.source() instanceof Player player)) return;
+        sitListener.lay(player);
+    }
+
 }

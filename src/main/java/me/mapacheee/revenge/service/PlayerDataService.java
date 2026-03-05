@@ -60,6 +60,23 @@ public class PlayerDataService {
 
     public void loadPlayerData(Player player) {
         getPlayerData(player.getUniqueId(), player.getName()).thenAccept(data -> {
+            boolean modified = false;
+            
+            if (!data.getKnownNames().contains(player.getName())) {
+                data.getKnownNames().add(player.getName());
+                modified = true;
+            }
+            if (player.getAddress() != null && player.getAddress().getAddress() != null) {
+                String ip = player.getAddress().getAddress().getHostAddress();
+                if (data.getLastIp() == null || !data.getLastIp().equals(ip)) {
+                    data.setLastIp(ip);
+                    modified = true;
+                }
+            }
+            
+            data.setLastConnection(System.currentTimeMillis());
+            savePlayerData(data);
+            
             playerDataCache.put(player.getUniqueId(), data);
         });
     }

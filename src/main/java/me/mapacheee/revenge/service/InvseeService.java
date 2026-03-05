@@ -55,7 +55,7 @@ public class InvseeService implements Listener {
 
     private void registerChannels() {
         channelService.subscribe("revenge:invsee_req", CrossInvseeRequestMessage.class, msg -> {
-            Player target = Bukkit.getPlayerExact(msg.getTargetName());
+            Player target = Bukkit.getPlayer(msg.getTargetName());
             if (target != null && target.isOnline()) {
                 JsonObject data = new JsonObject();
                 data.addProperty("inventory", inventorySyncService.serializeItems(target.getInventory().getContents()));
@@ -63,7 +63,7 @@ public class InvseeService implements Listener {
                 data.addProperty("offhand", inventorySyncService.serializeItems(new ItemStack[]{target.getInventory().getItemInOffHand()}));
                 channelService.publish("revenge:invsee_res", new CrossInvseeResponseMessage(
                         msg.getSenderName(),
-                        msg.getTargetName(),
+                        target.getName(), 
                         gson.toJson(data),
                         RevengeCoreAPI.get().getServerName()
                 ));
@@ -73,10 +73,7 @@ public class InvseeService implements Listener {
         channelService.subscribe("revenge:invsee_res", CrossInvseeResponseMessage.class, msg -> {
             Player sender = Bukkit.getPlayerExact(msg.getSenderName());
             if (sender != null && sender.isOnline()) {
-                RedissonClient redisson = RevengeCoreAPI.get().getRedisService().client();
-                RBucket<String> bucket = redisson.getBucket("revenge:online:" + msg.getTargetName());
-                String targetServer = bucket.get();
-
+                String targetServer = msg.getServerName();
                 if (targetServer != null) {
                     processOpening(sender, msg.getTargetName(), targetServer, msg.getInventoryJson());
                 }
@@ -85,18 +82,18 @@ public class InvseeService implements Listener {
 
         channelService.subscribe("revenge:invsee_upd", CrossInvseeUpdateMessage.class, msg -> {
             if (msg.getTargetServer().equals(RevengeCoreAPI.get().getServerName())) {
-                Player target = Bukkit.getPlayerExact(msg.getTargetName());
+                Player target = Bukkit.getPlayer(msg.getTargetName());
                 if (target != null && target.isOnline()) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         JsonObject data = gson.fromJson(msg.getInventoryJson(), JsonObject.class);
                         try {
-                            if (data.has("inventory")) {
+                            if (data.has("inventory") && !data.get("inventory").isJsonNull()) {
                                 target.getInventory().setContents(inventorySyncService.deserializeItems(data.get("inventory").getAsString()));
                             }
-                            if (data.has("armor")) {
+                            if (data.has("armor") && !data.get("armor").isJsonNull()) {
                                 target.getInventory().setArmorContents(inventorySyncService.deserializeItems(data.get("armor").getAsString()));
                             }
-                            if (data.has("offhand")) {
+                            if (data.has("offhand") && !data.get("offhand").isJsonNull()) {
                                 ItemStack[] offhand = inventorySyncService.deserializeItems(data.get("offhand").getAsString());
                                 if (offhand.length > 0) target.getInventory().setItemInOffHand(offhand[0]);
                             }
@@ -155,19 +152,19 @@ public class InvseeService implements Listener {
             if (inventoryJson != null && !inventoryJson.equals("{}") && !inventoryJson.isEmpty()) {
                 try {
                     JsonObject data = gson.fromJson(inventoryJson, JsonObject.class);
-                    if (data.has("inventory")) {
+                    if (data.has("inventory") && !data.get("inventory").isJsonNull()) {
                         ItemStack[] mainInv = inventorySyncService.deserializeItems(data.get("inventory").getAsString());
                         for (int i = 0; i < Math.min(mainInv.length, 36); i++) {
                             inv.setItem(i, mainInv[i]);
                         }
                     }
-                    if (data.has("armor")) {
+                    if (data.has("armor") && !data.get("armor").isJsonNull()) {
                         ItemStack[] armor = inventorySyncService.deserializeItems(data.get("armor").getAsString());
                         for (int i = 0; i < Math.min(armor.length, 4); i++) {
                             inv.setItem(36 + i, armor[i]);
                         }
                     }
-                    if (data.has("offhand")) {
+                    if (data.has("offhand") && !data.get("offhand").isJsonNull()) {
                         ItemStack[] offhand = inventorySyncService.deserializeItems(data.get("offhand").getAsString());
                         if (offhand.length > 0) {
                             inv.setItem(40, offhand[0]);

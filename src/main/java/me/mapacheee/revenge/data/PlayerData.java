@@ -25,6 +25,11 @@ public class PlayerData implements Identifiable<ObjectId> {
     private int kills;
     private int deaths;
     private List<String> offlineMessages;
+    
+    private String lastIp;
+    private String country;
+    private long lastConnection;
+    private List<String> knownNames;
 
     public PlayerData() {
     }
@@ -40,6 +45,9 @@ public class PlayerData implements Identifiable<ObjectId> {
         this.deaths = 0;
         this.kills = 0;
         this.offlineMessages = new ArrayList<>();
+        this.knownNames = new ArrayList<>();
+        this.knownNames.add(name);
+        this.lastConnection = System.currentTimeMillis();
     }
 
     @Override
@@ -157,5 +165,38 @@ public class PlayerData implements Identifiable<ObjectId> {
 
     public void setDeaths(int deaths) {
         this.deaths = deaths;
+    }
+
+    public long getLastConnection() {
+        return lastConnection;
+    }
+
+    public void setLastConnection(long lastConnection) {
+        this.lastConnection = lastConnection;
+    }
+
+    public String getLastIp() {
+        return lastIp;
+    }
+
+    public void setLastIp(String lastIp) {
+        this.lastIp = lastIp;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public List<String> getKnownNames() {
+        if (knownNames == null) knownNames = new ArrayList<>();
+        return knownNames;
+    }
+
+    public void setKnownNames(List<String> knownNames) {
+        this.knownNames = knownNames;
     }
 }

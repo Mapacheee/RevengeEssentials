@@ -16,6 +16,7 @@ import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
 import org.incendo.cloud.annotations.suggestion.Suggestions;
+import me.mapacheee.revenge.channel.CrossTeleportRequestMessage;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.paper.util.sender.Source;
@@ -51,11 +52,18 @@ public class TeleportCommands {
         if (!(source.source() instanceof Player player))
             return;
 
-        Player targetPlayer = Bukkit.getPlayer(target);
+        Player targetPlayer = Bukkit.getPlayerExact(target);
         if (targetPlayer == null || !targetPlayer.isOnline()) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(
-                    messages.get().tpPlayerNotFound(),
-                    Placeholder.unparsed("player", target)));
+            RevengeCoreAPI.get().getChannelService().publish(
+                "revenge:tp_req",
+                new CrossTeleportRequestMessage(
+                    RevengeCoreAPI.get().getServerName(),
+                    player.getName(),
+                    target,
+                    RevengeCoreAPI.get().getServerName()
+                )
+            );
+            player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().crossServerTeleporting()));
             return;
         }
 
