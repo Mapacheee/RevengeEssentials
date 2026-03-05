@@ -593,4 +593,28 @@ public class UtilityCommands {
         String msg = messages.get().itemLoreClearSuccess() != null ? messages.get().itemLoreClearSuccess() : "<green>Lore del objeto borrado.";
         player.sendMessage(MiniMessage.miniMessage().deserialize(msg));
     }
+
+    @Command("enderchest|echest [target]")
+    @Permission("revenge.enderchest")
+    public void enderchest(Source source, @Nullable @Argument(value = "target", suggestions = "players") String target) {
+        if (!(source.source() instanceof Player) && target == null) {
+            source.source().sendMessage(MiniMessage.miniMessage().deserialize("<red>Se debe especificar un jugador en consola.</red>"));
+            return;
+        }
+
+        Player pTarget;
+        if (target == null) {
+            pTarget = (Player) source.source();
+        } else {
+            pTarget = Bukkit.getPlayerExact(target);
+            if (pTarget == null) {
+                source.source().sendMessage(MiniMessage.miniMessage().deserialize("<red>El jugador no está conectado en este servidor.</red>"));
+                return;
+            }
+        }
+
+        if (source.source() instanceof Player player) {
+            player.openInventory(pTarget.getEnderChest());
+        }
+    }
 }

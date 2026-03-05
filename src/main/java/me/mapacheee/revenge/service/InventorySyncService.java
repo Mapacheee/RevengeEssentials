@@ -23,7 +23,7 @@ import java.io.DataOutputStream;
 import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -55,7 +55,7 @@ public class InventorySyncService {
         
         RedissonClient rc = RevengeCoreAPI.get().getRedisService().client();
         RBucket<String> lk = rc.getBucket("revenge:invlock:" + player.getUniqueId());
-        lk.set("locked", 15, TimeUnit.SECONDS);
+        lk.set("locked", Duration.ofSeconds(15));
 
         try {
             JsonObject data = new JsonObject();
@@ -116,7 +116,7 @@ public class InventorySyncService {
                 attempts++;
             }
 
-            getPlayerDataService().getPlayerData(player.getUniqueId(), player.getName()).thenAccept(playerData -> {
+            getPlayerDataService().loadFreshPlayerData(player.getUniqueId(), player.getName()).thenAccept(playerData -> {
                 String inventoryJson = playerData.getInventory();
                 if (inventoryJson == null || inventoryJson.equals("{}") || inventoryJson.isEmpty()) {
                     syncingPlayers.remove(player.getUniqueId());

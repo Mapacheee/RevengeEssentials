@@ -16,7 +16,7 @@ public class EssentialsPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getIdentifier() {
-        return "revenge";
+        return "essentials";
     }
 
     @Override
@@ -26,7 +26,7 @@ public class EssentialsPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "1.1.0";
+        return "1.2.0";
     }
 
     @Override
@@ -38,7 +38,7 @@ public class EssentialsPlaceholderExpansion extends PlaceholderExpansion {
     public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
         if (player == null) return "";
 
-        if (params.equalsIgnoreCase("essentials_kills")) {
+        if (params.equalsIgnoreCase("kills")) {
             try {
                 return String.valueOf(playerDataService.getPlayerKills(player.getUniqueId(), player.getName()).join());
             } catch (Exception e) {
@@ -46,7 +46,7 @@ public class EssentialsPlaceholderExpansion extends PlaceholderExpansion {
             }
         }
 
-        if (params.equalsIgnoreCase("essentials_deaths")) {
+        if (params.equalsIgnoreCase("deaths")) {
             try {
                 return String.valueOf(playerDataService.getPlayerDeaths(player.getUniqueId(), player.getName()).join());
             } catch (Exception e) {

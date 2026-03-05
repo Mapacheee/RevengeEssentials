@@ -9,6 +9,8 @@ import me.mapacheee.revenge.service.SpawnService;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -63,6 +65,15 @@ public class PlayerSyncListener implements Listener {
         if (event.getCause() == PlayerTeleportEvent.TeleportCause.COMMAND
                 || event.getCause() == PlayerTeleportEvent.TeleportCause.PLUGIN) {
             backService.saveBackLocation(event.getPlayer(), event.getFrom());
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (event.getInventory().getType() == InventoryType.ENDER_CHEST) {
+            if (event.getPlayer() instanceof Player player) {
+                inventorySyncService.savePlayerData(player);
+            }
         }
     }
 }

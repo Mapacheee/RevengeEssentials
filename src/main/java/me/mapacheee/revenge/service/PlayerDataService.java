@@ -89,11 +89,7 @@ public class PlayerDataService {
         });
     }
 
-    public CompletableFuture<PlayerData> getPlayerData(UUID uuid, String name) {
-        PlayerData cached = playerDataCache.get(uuid);
-        if (cached != null) {
-            return CompletableFuture.completedFuture(cached);
-        }
+    public CompletableFuture<PlayerData> loadFreshPlayerData(UUID uuid, String name) {
         return CompletableFuture.supplyAsync(() -> {
             PlayerData data = repository.findOne(Filters.eq("uuid", uuid.toString()));
             if (data == null) {
@@ -103,6 +99,14 @@ public class PlayerDataService {
             playerDataCache.put(uuid, data);
             return data;
         });
+    }
+
+    public CompletableFuture<PlayerData> getPlayerData(UUID uuid, String name) {
+        PlayerData cached = playerDataCache.get(uuid);
+        if (cached != null) {
+            return CompletableFuture.completedFuture(cached);
+        }
+        return loadFreshPlayerData(uuid, name);
     }
 
     public CompletableFuture<Void> savePlayerData(PlayerData data) {
