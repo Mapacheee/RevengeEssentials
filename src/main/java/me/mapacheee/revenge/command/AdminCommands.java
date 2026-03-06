@@ -20,7 +20,9 @@ import me.mapacheee.revenge.service.PlayerDataService;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.net.URI;
+import java.util.stream.Collectors;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -52,6 +54,13 @@ public class AdminCommands {
     @Suggestions("broadcast_scopes")
     public java.util.List<String> broadcastScopes(CommandContext<Source> context, CommandInput input) {
         return java.util.List.of("global", "local");
+    }
+
+    @Suggestions("players")
+    public List<String> players(CommandContext<Source> context, CommandInput input) {
+        return playerDataService.getAllPlayerNames()
+                .stream()
+                .collect(Collectors.toList());
     }
 
     @Command("broadcast <scope> <message>")
