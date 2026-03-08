@@ -88,7 +88,7 @@ public class WarpCommands {
         }
     }
 
-    @Command("warp")
+    @Command("warp|warps")
     @Permission("revenge.warp.use")
     public void warpGui(Source source) {
         if (!(source.source() instanceof Player sender)) return;
