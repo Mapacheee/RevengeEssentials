@@ -6,6 +6,7 @@ import com.thewinterframework.service.annotation.Service;
 import com.thewinterframework.service.annotation.lifecycle.OnEnable;
 import me.mapacheee.revenge.api.RevengeCoreAPI;
 import me.mapacheee.revenge.channel.CrossRtpRequestMessage;
+import me.mapacheee.revenge.channel.CrossRtpResponseMessage;
 import me.mapacheee.revenge.config.Config;
 import me.mapacheee.revenge.config.Messages;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -15,13 +16,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.HeightMap;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Duration;
+import java.util.function.Consumer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -38,7 +42,8 @@ public class RtpService {
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> currentlyTeleporting = new ConcurrentHashMap<>();
 
-    private final String RTP_CHANNEL = "revenge:rtp:request";
+    private static final String RTP_REQUEST_CHANNEL = "revenge:rtp:request";
+    private static final String RTP_RESPONSE_CHANNEL = "revenge:rtp:response";
 
     @Inject
     public RtpService(Container<Config> config, Container<Messages> messages, Plugin plugin,
@@ -51,15 +56,50 @@ public class RtpService {
 
     @OnEnable
     public void onEnable() {
-        RevengeCoreAPI.get().getChannelService().subscribe(RTP_CHANNEL, CrossRtpRequestMessage.class, msg -> {
+        RevengeCoreAPI.get().getChannelService().subscribe(RTP_REQUEST_CHANNEL, CrossRtpRequestMessage.class, msg -> {
             if (msg.targetServer.equals(RevengeCoreAPI.get().getServerName())) {
                 findSafeLocationAsync(msg.targetWorld, msg.radius, loc -> {
+                    CrossRtpResponseMessage response;
                     if (loc != null) {
-                        crossServerService.setPendingTeleport(UUID.fromString(msg.uuid), msg.targetServer,
-                                msg.targetWorld, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(),
-                                false);
+                        response = new CrossRtpResponseMessage(
+                                msg.uuid, msg.currentServer, msg.targetServer, msg.targetWorld,
+                                loc.getX(), loc.getY(), loc.getZ(), true);
+                    } else {
+                        response = new CrossRtpResponseMessage(
+                                msg.uuid, msg.currentServer, msg.targetServer, msg.targetWorld,
+                                0, 0, 0, false);
                     }
+                    RevengeCoreAPI.get().getChannelService().publish(RTP_RESPONSE_CHANNEL, response);
                 });
+            }
+        }, plugin.getSLF4JLogger());
+
+        RevengeCoreAPI.get().getChannelService().subscribe(RTP_RESPONSE_CHANNEL, CrossRtpResponseMessage.class, msg -> {
+            if (msg.sourceServer.equals(RevengeCoreAPI.get().getServerName())) {
+                UUID uuid = UUID.fromString(msg.uuid);
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null || !player.isOnline()) {
+                    currentlyTeleporting.remove(uuid);
+                    return;
+                }
+
+                if (!msg.success) {
+                    currentlyTeleporting.remove(uuid);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<#FF4A4A>No se pudo encontrar un lugar seguro en el servidor destino, intenta de nuevo."));
+                    return;
+                }
+
+                crossServerService.setPendingTeleport(uuid, msg.targetServer, msg.targetWorld,
+                        msg.x, msg.y, msg.z, 0, 0, false);
+
+                Bukkit.getAsyncScheduler().runDelayed(plugin, task -> {
+                    crossServerService.teleportCrossServer(player, msg.targetServer, msg.targetWorld,
+                            msg.x, msg.y, msg.z, 0, 0, false);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().rtpTeleported()));
+                    player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+                    setCooldown(uuid);
+                    currentlyTeleporting.remove(uuid);
+                }, 500, TimeUnit.MILLISECONDS);
             }
         }, plugin.getSLF4JLogger());
     }
@@ -94,29 +134,21 @@ public class RtpService {
                     }
                 });
             } else {
-                RevengeCoreAPI.get().getChannelService().publish(RTP_CHANNEL,
+                RevengeCoreAPI.get().getChannelService().publish(RTP_REQUEST_CHANNEL,
                         new CrossRtpRequestMessage(uuid.toString(), player.getName(), RevengeCoreAPI.get().getServerName(),
                                 targetServer, targetWorld, radius));
-                
-                Bukkit.getAsyncScheduler().runDelayed(plugin, task -> {
-                    crossServerService.teleportCrossServer(player, targetServer, targetWorld, 0, 0, 0, 0, 0, false);
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(messages.get().rtpTeleported()));
-                    player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
-                    setCooldown(uuid);
-                    currentlyTeleporting.remove(uuid);
-                }, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
             }
         });
     }
 
-    private void findSafeLocationAsync(String worldName, int radius, java.util.function.Consumer<Location> callback) {
+    private void findSafeLocationAsync(String worldName, int radius, Consumer<Location> callback) {
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
             callback.accept(null);
             return;
         }
 
-        findSafeLocationRecursive(world, radius, 0, 10, callback);
+        findSafeLocationRecursive(world, radius, 0, 30, callback);
     }
 
     private void findSafeLocationRecursive(World world, int radius, int currentAttempt, int maxAttempts, java.util.function.Consumer<Location> callback) {
@@ -125,15 +157,24 @@ public class RtpService {
             return;
         }
 
-        int x = ThreadLocalRandom.current().nextInt(-radius, radius + 1);
-        int z = ThreadLocalRandom.current().nextInt(-radius, radius + 1);
+        Location spawnLoc = world.getSpawnLocation();
+        int centerX = spawnLoc.getBlockX();
+        int centerZ = spawnLoc.getBlockZ();
+
+        double angle = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
+        int minRadius = Math.max(50, radius / 4);
+        double distance = ThreadLocalRandom.current().nextDouble(minRadius, radius);
+        int x = centerX + (int) (Math.cos(angle) * distance);
+        int z = centerZ + (int) (Math.sin(angle) * distance);
 
         world.getChunkAtAsync(x >> 4, z >> 4).thenAccept(chunk -> {
             Bukkit.getRegionScheduler().run(plugin, new Location(world, x, 0, z), task -> {
-                int highestY = world.getHighestBlockYAt(x, z, org.bukkit.HeightMap.MOTION_BLOCKING_NO_LEAVES);
-                Block highestBlock = world.getBlockAt(x, highestY, z);
+                int highestY = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                Block groundBlock = world.getBlockAt(x, highestY, z);
+                Block feetBlock = world.getBlockAt(x, highestY + 1, z);
+                Block headBlock = world.getBlockAt(x, highestY + 2, z);
 
-                if (isSafe(highestBlock)) {
+                if (isSafeGround(groundBlock) && isPassable(feetBlock) && isPassable(headBlock)) {
                     callback.accept(new Location(world, x + 0.5, highestY + 1, z + 0.5));
                 } else {
                     findSafeLocationRecursive(world, radius, currentAttempt + 1, maxAttempts, callback);
@@ -142,13 +183,27 @@ public class RtpService {
         });
     }
 
-    private boolean isSafe(Block block) {
+    private boolean isSafeGround(Block block) {
         if (block == null) return false;
-        return block.getType().isSolid() && 
-               !block.getType().name().contains("LAVA") && 
-               !block.getType().name().contains("WATER") &&
-               !block.getType().name().contains("CACTUS") &&
-               !block.getType().name().contains("MAGMA");
+        org.bukkit.Material mat = block.getType();
+        if (!mat.isSolid()) return false;
+        String name = mat.name();
+        return !name.contains("LAVA") &&
+               !name.contains("WATER") &&
+               !name.contains("CACTUS") &&
+               !name.contains("MAGMA") &&
+               !name.contains("FIRE") &&
+               !name.contains("CAMPFIRE") &&
+               !name.contains("SWEET_BERRY") &&
+               !name.contains("POWDER_SNOW") &&
+               !name.contains("POINTED_DRIPSTONE") &&
+               !name.contains("WITHER_ROSE");
+    }
+
+    private boolean isPassable(Block block) {
+        if (block == null) return false;
+        org.bukkit.Material mat = block.getType();
+        return mat.isAir() || (!mat.isSolid() && !mat.name().contains("LAVA") && !mat.name().contains("WATER") && !mat.name().contains("FIRE"));
     }
 
     private void finishTeleport(Player player, Location loc, boolean local) {

@@ -6,7 +6,7 @@ default-walk-speed: 1
 default-fly-speed: 1
 rtp-target-server: "survival-overworld"
 rtp-target-world: "world"
-rtp-radius: 100
+rtp-radius: 5000
 rtp-cooldown-seconds: 60
 auto-save-interval-minutes: 20
 teleport-warmup-seconds: 3
