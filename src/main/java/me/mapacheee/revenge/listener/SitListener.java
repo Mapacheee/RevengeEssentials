@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Listener;
+import org.bukkit.entity.Pose;
 import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -79,7 +80,7 @@ public class SitListener implements Listener {
             armorStand.addPassenger(player);
         });
 
-        player.setGliding(true); 
+        player.setPose(Pose.SWIMMING);
         layingPlayers.put(player.getUniqueId(), true);
         sittingPlayers.put(player.getUniqueId(), stand);
         return true;
@@ -92,7 +93,7 @@ public class SitListener implements Listener {
             if (stand != null && event.getDismounted().equals(stand)) {
                 stand.remove();
                 if (layingPlayers.remove(player.getUniqueId()) != null) {
-                    player.setGliding(false);
+                    player.setPose(Pose.STANDING);
                 }
                 player.teleportAsync(player.getLocation().add(0, 1.7, 0));
             }
